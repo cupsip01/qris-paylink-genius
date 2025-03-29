@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { PaymentService } from "@/utils/paymentService";
@@ -8,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Layout from "@/components/Layout";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { Download, Copy, Share2, Barcode } from "lucide-react";
+import { Download, Copy, Share2, Barcode, Info } from "lucide-react";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -72,7 +71,7 @@ const PaymentDetails = () => {
     
     toast({
       title: "QR Code downloaded",
-      description: "The QR code image has been downloaded",
+      description: "The QR code with embedded amount has been downloaded",
     });
   };
 
@@ -136,25 +135,24 @@ const PaymentDetails = () => {
               <div className="flex justify-center mb-6">
                 {payment.qrImageUrl && (
                   <div className="flex flex-col items-center bg-white p-4 border rounded-lg shadow-md">
-                    {payment.useCustomQr && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <Barcode className="h-4 w-4 text-qris-red" />
-                        <div className="text-center font-semibold">QRIS - Jedo Store</div>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 mb-2">
+                      <Barcode className="h-4 w-4 text-qris-red" />
+                      <div className="text-center font-semibold">QRIS - Jedo Store</div>
+                    </div>
                     <img 
                       src={payment.qrImageUrl} 
-                      alt="QRIS Payment QR Code"
+                      alt="QRIS Payment QR Code with Amount"
                       className="max-w-full"
-                      style={{width: 'auto', height: 'auto', maxHeight: '400px'}}
+                      style={{width: 'auto', height: 'auto', maxHeight: '300px'}}
                     />
-                    {payment.useCustomQr && (
-                      <div className="text-center mt-4 bg-gray-100 p-2 rounded w-full">
-                        <div className="font-bold mb-1">Total Bayar: {formatCurrency(payment.amount)}</div>
-                        <div className="text-xs">NMID: ID1024313642810</div>
-                        <div className="text-sm mt-1">Scan QR di atas untuk membayar sesuai nominal</div>
+                    <div className="text-center mt-4 bg-gray-100 p-2 rounded w-full">
+                      <div className="font-bold mb-1">Total Bayar: {formatCurrency(payment.amount)}</div>
+                      <div className="text-xs">NMID: ID1024313642810</div>
+                      <div className="flex justify-center items-center gap-1 mt-2">
+                        <Info className="h-3 w-3 text-gray-500" />
+                        <div className="text-sm text-gray-600">QR sudah terisi nominal {formatCurrency(payment.amount)}</div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
               </div>

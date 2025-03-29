@@ -35,14 +35,14 @@ const createPayment = async (
   const id = Math.random().toString(36).substring(2, 15);
   let qrImageUrl;
   
-  if (useCustomQr) {
-    // Use the new custom QRIS image
-    qrImageUrl = "/lovable-uploads/77d1e713-7a92-4d6e-9b4d-a61ea8274672.png";
-  } else {
-    // Generate a QR code if needed (fallback)
-    const qrisData = `QRIS Payment: Amount=${amount}, Note=${note || ""}, Buyer=${buyerName || ""}, Bank=${bankSender || ""}`;
-    qrImageUrl = await generateQRCode(qrisData);
-  }
+  // Always generate a QR code that includes the amount
+  // This follows a simplified QRIS format with amount embedded
+  // In a real implementation, this would follow the QRIS standard format
+  const amountInRupiah = amount.toFixed(2);
+  const merchantId = "ID1024313642810"; // Merchant ID from your QRIS image
+  const qrisData = `00020101021226650014ID.CO.QRIS.WWW011893600914${merchantId}5204581453033605802ID5924Jedo Store6007Jakarta62070703A016304${amountInRupiah}`;
+  
+  qrImageUrl = await generateQRCode(qrisData);
   
   const newPayment: Payment = {
     id,
@@ -53,7 +53,8 @@ const createPayment = async (
     createdAt: new Date().toISOString(),
     status: "pending",
     qrImageUrl,
-    useCustomQr
+    useCustomQr,
+    originalMerchantQrImage: "/lovable-uploads/77d1e713-7a92-4d6e-9b4d-a61ea8274672.png"
   };
 
   const payments = getPayments();

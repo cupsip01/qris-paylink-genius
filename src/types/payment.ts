@@ -9,5 +9,6 @@ export interface Payment {
   status: 'pending' | 'paid';
   qrImageUrl?: string;
   useCustomQr?: boolean;
-  originalMerchantQrImage?: string; // Added to store the original merchant QR image
+  originalMerchantQrImage?: string;
+  formattedAmount?: string; // Added for Indonesian currency formatting
 }

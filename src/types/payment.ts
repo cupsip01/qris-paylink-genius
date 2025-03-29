@@ -8,4 +8,5 @@ export interface Payment {
   createdAt: string;
   status: 'pending' | 'paid';
   qrImageUrl?: string;
+  useCustomQr?: boolean;
 }

@@ -29,14 +29,20 @@ const createPayment = async (
   amount: number,
   note?: string,
   buyerName?: string,
-  bankSender?: string
+  bankSender?: string,
+  useCustomQr: boolean = true
 ): Promise<Payment> => {
-  // In a real app, this would generate a real QRIS code with the proper format
-  // Here we're just creating a dummy payment link with the data
   const id = Math.random().toString(36).substring(2, 15);
-  const qrisData = `QRIS Payment: Amount=${amount}, Note=${note || ""}, Buyer=${buyerName || ""}, Bank=${bankSender || ""}`;
+  let qrImageUrl;
   
-  const qrImageUrl = await generateQRCode(qrisData);
+  if (useCustomQr) {
+    // Use the custom QRIS image
+    qrImageUrl = "/lovable-uploads/a28201ad-8957-4285-8116-e46f02904b16.png";
+  } else {
+    // Generate a QR code if needed (fallback)
+    const qrisData = `QRIS Payment: Amount=${amount}, Note=${note || ""}, Buyer=${buyerName || ""}, Bank=${bankSender || ""}`;
+    qrImageUrl = await generateQRCode(qrisData);
+  }
   
   const newPayment: Payment = {
     id,
@@ -46,7 +52,8 @@ const createPayment = async (
     bankSender,
     createdAt: new Date().toISOString(),
     status: "pending",
-    qrImageUrl
+    qrImageUrl,
+    useCustomQr
   };
 
   const payments = getPayments();

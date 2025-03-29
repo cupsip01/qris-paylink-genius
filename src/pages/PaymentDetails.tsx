@@ -135,12 +135,20 @@ const PaymentDetails = () => {
               
               <div className="flex justify-center mb-6">
                 {payment.qrImageUrl && (
-                  <div className="bg-white p-4 border rounded-lg shadow-md">
+                  <div className="flex flex-col items-center bg-white p-4 border rounded-lg shadow-md">
+                    {payment.useCustomQr && <div className="text-center mb-2 font-semibold">Jedo Store</div>}
                     <img 
                       src={payment.qrImageUrl} 
-                      alt="QRIS Payment QR Code" 
-                      className="w-64 h-64"
+                      alt="QRIS Payment QR Code"
+                      className="max-w-full"
+                      style={{width: 'auto', height: 'auto', maxHeight: '400px'}}
                     />
+                    {payment.useCustomQr && (
+                      <div className="text-center mt-4 bg-gray-100 p-2 rounded">
+                        <div className="font-bold mb-1">Bayar: {formatCurrency(payment.amount)}</div>
+                        <div className="text-sm">Scan QR untuk membayar sesuai nominal</div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -46,7 +45,8 @@ const Index = () => {
         Number(amount),
         note,
         buyerName,
-        bankSender
+        bankSender,
+        true // Always use the custom QRIS
       );
       
       toast({

@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Layout from "@/components/Layout";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { Download, Copy, Share2 } from "lucide-react";
+import { Download, Copy, Share2, Barcode } from "lucide-react";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -136,7 +136,12 @@ const PaymentDetails = () => {
               <div className="flex justify-center mb-6">
                 {payment.qrImageUrl && (
                   <div className="flex flex-col items-center bg-white p-4 border rounded-lg shadow-md">
-                    {payment.useCustomQr && <div className="text-center mb-2 font-semibold">Jedo Store</div>}
+                    {payment.useCustomQr && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <Barcode className="h-4 w-4 text-qris-red" />
+                        <div className="text-center font-semibold">QRIS - Jedo Store</div>
+                      </div>
+                    )}
                     <img 
                       src={payment.qrImageUrl} 
                       alt="QRIS Payment QR Code"
@@ -144,9 +149,10 @@ const PaymentDetails = () => {
                       style={{width: 'auto', height: 'auto', maxHeight: '400px'}}
                     />
                     {payment.useCustomQr && (
-                      <div className="text-center mt-4 bg-gray-100 p-2 rounded">
-                        <div className="font-bold mb-1">Bayar: {formatCurrency(payment.amount)}</div>
-                        <div className="text-sm">Scan QR untuk membayar sesuai nominal</div>
+                      <div className="text-center mt-4 bg-gray-100 p-2 rounded w-full">
+                        <div className="font-bold mb-1">Total Bayar: {formatCurrency(payment.amount)}</div>
+                        <div className="text-xs">NMID: ID1024313642810</div>
+                        <div className="text-sm mt-1">Scan QR di atas untuk membayar sesuai nominal</div>
                       </div>
                     )}
                   </div>

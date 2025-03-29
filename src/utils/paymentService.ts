@@ -36,8 +36,8 @@ const createPayment = async (
   let qrImageUrl;
   
   if (useCustomQr) {
-    // Use the custom QRIS image
-    qrImageUrl = "/lovable-uploads/a28201ad-8957-4285-8116-e46f02904b16.png";
+    // Use the new custom QRIS image
+    qrImageUrl = "/lovable-uploads/77d1e713-7a92-4d6e-9b4d-a61ea8274672.png";
   } else {
     // Generate a QR code if needed (fallback)
     const qrisData = `QRIS Payment: Amount=${amount}, Note=${note || ""}, Buyer=${buyerName || ""}, Bank=${bankSender || ""}`;

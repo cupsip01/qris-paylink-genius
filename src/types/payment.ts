@@ -10,5 +10,10 @@ export interface Payment {
   qrImageUrl?: string;
   useCustomQr?: boolean;
   originalMerchantQrImage?: string;
-  formattedAmount?: string; // Added for Indonesian currency formatting
+  formattedAmount?: string; // For Indonesian currency formatting
+  qrisContent?: string; // QRIS content string from API
+  qrisInvoiceId?: string; // Invoice ID from API
+  qrisNmid?: string; // National Merchant ID
+  qrisRequestDate?: string; // Request date from API
+  cliTrxNumber?: string; // Transaction reference number
 }

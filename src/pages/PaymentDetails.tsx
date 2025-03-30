@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { PaymentService } from "@/utils/paymentService";
@@ -94,6 +95,16 @@ const PaymentDetails = () => {
     }
   };
 
+  // Calculate expiry time (30 minutes from creation)
+  const expiryTime = payment.qrisRequestDate 
+    ? new Date(new Date(payment.qrisRequestDate).getTime() + 30 * 60 * 1000) 
+    : null;
+
+  const isExpired = expiryTime ? new Date() > expiryTime : false;
+  const expiryTimeString = expiryTime ? 
+    `${expiryTime.getHours().toString().padStart(2, '0')}:${expiryTime.getMinutes().toString().padStart(2, '0')}` : 
+    '';
+
   return (
     <Layout>
       <div className="max-w-md mx-auto py-6">
@@ -147,7 +158,16 @@ const PaymentDetails = () => {
                     />
                     <div className="text-center mt-4 bg-gray-100 p-2 rounded w-full">
                       <div className="font-bold mb-1">Total Bayar: {formatCurrency(payment.amount)}</div>
-                      <div className="text-xs">NMID: ID1024313642810</div>
+                      <div className="text-xs">NMID: {payment.qrisNmid || "ID1024313642810"}</div>
+                      {expiryTimeString && (
+                        <div className="text-xs mt-1">
+                          {isExpired ? (
+                            <span className="text-red-600">EXPIRED</span>
+                          ) : (
+                            <span>Valid until {expiryTimeString} WIB</span>
+                          )}
+                        </div>
+                      )}
                       <div className="flex justify-center items-center gap-1 mt-2">
                         <Info className="h-3 w-3 text-gray-500" />
                         <div className="text-sm text-gray-600">QR sudah terisi nominal {formatCurrency(payment.amount)}</div>

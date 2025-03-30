@@ -40,32 +40,62 @@ const createPayment = async (
   useCustomQr: boolean = true
 ): Promise<Payment> => {
   const id = Math.random().toString(36).substring(2, 15);
-  let qrImageUrl;
   
-  // Format the amount in Indonesian style (no decimal points)
+  // Format the amount in Indonesian style (with thousand separators)
   const formattedAmount = formatIndonesianCurrency(amount);
   
-  // For QRIS, we need the amount without any formatting, just the raw number
-  // The QRIS standard expects amount in smallest currency unit (e.g., cents)
-  // For IDR, we'll convert to a string without decimals since Rupiah doesn't use cents in practice
+  // Generate transaction reference number based on id
+  const cliTrxNumber = `TR${id.substring(0, 6).toUpperCase()}`;
   
-  // We'll format according to the QRIS standard
-  // The 54 data object contains the transaction amount
-  // Format: two digits for length + amount value
-  const amountString = amount.toString();
-  const amountLength = amountString.length.toString().padStart(2, '0');
-  const amountField = `54${amountLength}${amountString}`;
+  // QRIS API parameters
+  const params = new URLSearchParams({
+    do: 'create-invoice',
+    apikey: 'a789789', // Replace with your actual API key
+    mID: '123456', // Replace with your actual merchant ID
+    cliTrxNumber: cliTrxNumber,
+    cliTrxAmount: amount.toString(),
+    useTip: 'no'
+  });
   
-  // Merchant ID from your QRIS image
-  const merchantId = "ID1024313642810"; 
+  let qrisContent = '';
+  let qrImageUrl = '';
+  let qrisInvoiceId = '';
+  let qrisNmid = '';
+  let qrisRequestDate = '';
   
-  // Build the full QRIS data string according to standards
-  // This follows a simplified version of the EMVCO QR Code standard
-  // In a real implementation, you would need to calculate CRC and other elements
-  const qrisData = `00020101021226650014ID.CO.QRIS.WWW011893600914${merchantId}5204581453033605802ID5924Jedo Store6007Jakarta6304${amountField}`;
-  
-  qrImageUrl = await generateQRCode(qrisData);
-  
+  try {
+    // In a real implementation, you would call the actual API
+    // For demo purposes, we'll simulate the API call with the QRIS format
+    // fetch(`https://qris.interactive.co.id/restapi/qris/show_qris.php?${params.toString()}`)
+    
+    // Simulate API response for demo
+    // This is a placeholder. In production, use the actual API response
+    const merchantId = "ID1024313642810"; // This would come from the API
+    
+    // Simulate QRIS content from API
+    // In a real implementation, this would be the qris_content from the API response
+    qrisContent = `00020101021226680016ID.CO.PJSP.WWW011893600914${merchantId}0215${merchantId}0303UMI51440014ID.CO.QRIS.WWW0215ID${merchantId}0303UMI52045732530336054082${amount}5502015802ID5916Jedo Store6007Jakarta61056013662130509${cliTrxNumber}`;
+    
+    // Generate QR code from QRIS content
+    qrImageUrl = await generateQRCode(qrisContent);
+    
+    // Set values that would come from API
+    qrisInvoiceId = cliTrxNumber;
+    qrisNmid = merchantId;
+    qrisRequestDate = new Date().toISOString();
+    
+  } catch (error) {
+    console.error("Error generating QRIS:", error);
+    // Fallback to basic QR if API fails
+    const amountString = amount.toString();
+    const amountLength = amountString.length.toString().padStart(2, '0');
+    const amountField = `54${amountLength}${amountString}`;
+    
+    const merchantId = "ID1024313642810"; 
+    qrisContent = `00020101021226650014ID.CO.QRIS.WWW011893600914${merchantId}5204581453033605802ID5924Jedo Store6007Jakarta6304${amountField}`;
+    qrImageUrl = await generateQRCode(qrisContent);
+  }
+
   const newPayment: Payment = {
     id,
     amount,
@@ -77,7 +107,12 @@ const createPayment = async (
     qrImageUrl,
     useCustomQr,
     originalMerchantQrImage: "/lovable-uploads/77d1e713-7a92-4d6e-9b4d-a61ea8274672.png",
-    formattedAmount: formattedAmount
+    formattedAmount: formattedAmount,
+    qrisContent: qrisContent,
+    qrisInvoiceId: qrisInvoiceId,
+    qrisNmid: qrisNmid,
+    qrisRequestDate: qrisRequestDate,
+    cliTrxNumber: cliTrxNumber
   };
 
   const payments = getPayments();

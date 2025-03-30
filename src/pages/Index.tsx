@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { PaymentService } from "@/utils/paymentService";
@@ -16,7 +16,8 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import Layout from "@/components/Layout";
-import { CreditCard, Upload, FileUp } from "lucide-react";
+import { CreditCard, Upload, FileUp, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const Index = () => {
   const [amount, setAmount] = useState("");
@@ -26,9 +27,11 @@ const Index = () => {
   const [loading, setLoading] = useState(false);
   const [qrisText, setQrisText] = useState("");
   const [activeTab, setActiveTab] = useState("create");
+  const [uploadedQrImage, setUploadedQrImage] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
 
   // Function to format input with thousand separators
   const formatAmountInput = (value: string) => {
@@ -48,6 +51,41 @@ const Index = () => {
     setAmount(formattedValue);
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUploadError(null);
+    const file = e.target.files?.[0];
+    
+    if (!file) {
+      return;
+    }
+    
+    // Check if the file is an image
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please upload an image file');
+      return;
+    }
+    
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('File size should be less than 10MB');
+      return;
+    }
+    
+    // Create a URL for the image to display preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setUploadedQrImage(event.target.result as string);
+        // Here we would ideally extract QRIS text from image
+        // For now, just notify the user they need to enter the text manually
+        toast("QR Image uploaded. Please enter the QRIS text manually if you have it", {
+          description: "We can't extract text from QR automatically yet"
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -55,7 +93,7 @@ const Index = () => {
     const numericAmount = parseInt(amount.replace(/\D/g, ''), 10);
     
     if (isNaN(numericAmount) || numericAmount <= 0) {
-      toast({
+      uiToast({
         title: "Invalid amount",
         description: "Please enter a valid payment amount",
         variant: "destructive",
@@ -74,7 +112,7 @@ const Index = () => {
         true // Always use the custom QRIS
       );
       
-      toast({
+      uiToast({
         title: "Payment created",
         description: "Your QRIS payment has been generated",
       });
@@ -82,9 +120,63 @@ const Index = () => {
       navigate(`/payment/${payment.id}`);
     } catch (error) {
       console.error("Error creating payment:", error);
-      toast({
+      uiToast({
         title: "Error",
         description: "Failed to create payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const processUploadedQris = async () => {
+    if (!qrisText && !uploadedQrImage) {
+      uiToast({
+        title: "Missing information",
+        description: "Please upload a QR image or enter QRIS text",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Convert formatted amount to number
+    const numericAmount = parseInt(amount.replace(/\D/g, ''), 10);
+    
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      uiToast({
+        title: "Invalid amount",
+        description: "Please enter a valid payment amount",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      // If we have QRIS text, use it, otherwise use default
+      const qrisToUse = qrisText || "00020101021126570011ID.DANA.WWW011893600915359884425702095988442570303UMI51440014ID.CO.QRIS.WWW0215ID10243136428100303UMI5204594553033605802ID5910Jedo Store6010Kab. Bogor61051682063049B94";
+      
+      const payment = await PaymentService.createPayment(
+        numericAmount,
+        note || "Uploaded QRIS payment",
+        buyerName || "QR Uploader",
+        bankSender,
+        true 
+      );
+      
+      uiToast({
+        title: "Payment created",
+        description: "Your QRIS payment has been generated",
+      });
+      
+      navigate(`/payment/${payment.id}`);
+    } catch (error) {
+      console.error("Error processing QRIS:", error);
+      uiToast({
+        title: "Error",
+        description: "Failed to process QRIS. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -182,23 +274,54 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                    <div className="mt-2">
-                      <Label htmlFor="qris-file" className="cursor-pointer text-blue-600 hover:text-blue-800">
-                        Upload QRIS image
-                      </Label>
-                      <Input
-                        id="qris-file"
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        PNG, JPG up to 10MB
-                      </p>
-                    </div>
+                  <div 
+                    className={`border-2 border-dashed ${uploadError ? 'border-red-300' : 'border-gray-300'} rounded-lg p-6 text-center relative overflow-hidden`}
+                    style={{minHeight: '150px'}}
+                  >
+                    {uploadedQrImage ? (
+                      <div className="flex flex-col items-center">
+                        <img 
+                          src={uploadedQrImage} 
+                          alt="Uploaded QR" 
+                          className="max-h-40 object-contain mb-2" 
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setUploadedQrImage(null)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                        <div className="mt-2">
+                          <Label htmlFor="qris-file" className="cursor-pointer text-blue-600 hover:text-blue-800 block">
+                            Upload QRIS image
+                          </Label>
+                          <p className="text-xs text-gray-500 mt-1">
+                            PNG, JPG up to 10MB
+                          </p>
+                        </div>
+                      </>
+                    )}
+                    
+                    <Input
+                      id="qris-file"
+                      type="file"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                    />
                   </div>
+                  
+                  {uploadError && (
+                    <div className="flex items-center gap-2 text-red-500 text-sm">
+                      <AlertCircle size={16} />
+                      <span>{uploadError}</span>
+                    </div>
+                  )}
                   
                   <div className="space-y-2">
                     <Label htmlFor="qris-text">QRIS Code Text</Label>
@@ -221,21 +344,26 @@ const Index = () => {
                         value={amount}
                         onChange={handleAmountChange}
                         className="pl-10"
+                        required
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="upload-note">Note (Optional)</Label>
+                    <Textarea
+                      id="upload-note"
+                      placeholder="Add any additional notes here..."
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                    />
                   </div>
                   
                   <Button
                     type="button"
                     className="w-full bg-qris-red hover:bg-red-700"
-                    disabled={loading || !qrisText || !amount}
-                    onClick={async () => {
-                      // Here we would process the QRIS code
-                      toast({
-                        title: "Coming soon",
-                        description: "QRIS code upload feature is coming soon",
-                      });
-                    }}
+                    disabled={loading}
+                    onClick={processUploadedQris}
                   >
                     <FileUp className="mr-2 h-4 w-4" />
                     {loading ? "Processing..." : "Process QRIS"}

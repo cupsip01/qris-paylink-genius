@@ -7,8 +7,8 @@ import { convertStaticToDynamicQRIS, parseQrisData } from "./qrisUtils";
 // For demo purposes, we're using localStorage
 const STORAGE_KEY = "qris_payments";
 
-// Example static QRIS content (in a real app, this would come from the merchant's QR scan)
-const STATIC_QRIS = "00020101021126570011ID.DANA.WWW011893600915302259148102090225914810303UMI51440014ID.CO.QRIS.WWW0215ID10200176114730303UMI5204581253033605802ID5922Warung Sayur Bu Sugeng6010Kab. Demak610559567630458C7";
+// Your specific static QRIS content
+const STATIC_QRIS = "00020101021126570011ID.DANA.WWW011893600915359884425702095988442570303UMI51440014ID.CO.QRIS.WWW0215ID10243136428100303UMI5204594553033605802ID5910Jedo Store6010Kab. Bogor61051682063049B94";
 
 const generateQRCode = async (text: string): Promise<string> => {
   try {
@@ -63,15 +63,16 @@ const createPayment = async (
   let qrisId = '';
   
   try {
-    // In a real implementation, you would get the static QRIS from a QR code scan
-    // or from a saved value in your database
+    // Use the static QRIS defined above
     const staticQrisContent = STATIC_QRIS;
     
     // Parse QRIS data to get merchant info
     const qrisData = parseQrisData(staticQrisContent);
-    qrisNmid = qrisData.nmid || "ID1020021181745";
+    qrisNmid = qrisData.nmid || "ID1024313642810";
     merchantName = qrisData.merchantName || "Jedo Store";
     qrisId = qrisData.id || "01";
+    
+    console.log("Parsed QRIS data:", qrisData);
     
     // Convert static QRIS to dynamic QRIS with embedded amount
     dynamicQrisContent = convertStaticToDynamicQRIS(staticQrisContent, amount, taxType, fee);

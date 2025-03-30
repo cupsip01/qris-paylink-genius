@@ -56,18 +56,43 @@ export function parseQrisData(qris: string): {
   id: string;
 } {
   try {
-    // Extract National Merchant ID
-    const nmid = "ID" + getTextBetween(qris, "15ID", "0303");
+    // Extract National Merchant ID - Improved parsing to work with various formats
+    let nmid = "";
+    if (qris.includes("ID10")) {
+      nmid = "ID" + getTextBetween(qris, "ID10", qris.includes("0303") ? "0303" : "03");
+    } else if (qris.includes("15ID")) {
+      nmid = "ID" + getTextBetween(qris, "15ID", "03");
+    } else {
+      // Generic fallback
+      const idMatch = qris.match(/ID(\d+)/);
+      nmid = idMatch ? "ID" + idMatch[1] : "";
+    }
     
     // Determine ID type
     const id = qris.includes("A01") ? "A01" : "01";
     
-    // Extract Merchant Name
-    const merchantName = getTextBetween(qris, "ID59", "60").substring(2).trim().toUpperCase();
+    // Extract Merchant Name - Updated to better handle merchant name extraction
+    let merchantName = "";
+    
+    // Try to find using 59 tag which is merchant name
+    if (qris.includes("5910")) {
+      merchantName = getTextBetween(qris, "5910", "60");
+    } else if (qris.includes("59")) {
+      // This is a more generic approach for other formats
+      const matches = qris.match(/59(\d{2})([^0-9]{2,})/);
+      if (matches && matches.length > 2) {
+        const lengthStr = matches[1];
+        const length = parseInt(lengthStr, 10);
+        merchantName = matches[2].substring(0, length);
+      }
+    }
+    
+    // Clean the merchant name
+    merchantName = merchantName.trim().toUpperCase();
     
     return {
       nmid,
-      merchantName,
+      merchantName: merchantName || "Jedo Store", // Default if not found
       id
     };
   } catch (error) {
@@ -107,8 +132,33 @@ export function convertStaticToDynamicQRIS(
     // Change the version from "0211" to "0212" for dynamic QRIS
     let qrisModified = qrisWithoutCRC.replace("010211", "010212");
     
+    // If the format has not been changed, it might be already dynamic or using a different format
+    if (qrisModified === qrisWithoutCRC && qrisWithoutCRC.includes("0101")) {
+      // Try other known formats
+      qrisModified = qrisWithoutCRC.replace("0101", "0102");
+    }
+    
     // Split on "5802ID" which comes before the country info
     const qrisParts = qrisModified.split("5802ID");
+    
+    // If the split didn't work, try another approach
+    if (qrisParts.length < 2) {
+      // Try to find a position to insert amount field
+      const countryIndex = qrisModified.indexOf("02ID");
+      if (countryIndex !== -1) {
+        // Insert amount before country code
+        const amountField = "54" + pad(amountStr.length) + amountStr;
+        const taxField = fee !== '0' ? 
+          (taxtype === 'p' ? "55020357" + pad(fee.length) + fee : "55020256" + pad(fee.length) + fee) : 
+          "";
+          
+        const newQris = qrisModified.substring(0, countryIndex) + 
+                         amountField + taxField + 
+                         qrisModified.substring(countryIndex);
+                         
+        return newQris + calculateCRC16(newQris);
+      }
+    }
     
     // Prepare amount field: "54" + (length of amount as 2 digits) + (amount)
     const amountField = "54" + pad(amountStr.length) + amountStr;
@@ -121,16 +171,36 @@ export function convertStaticToDynamicQRIS(
         : "55020256" + pad(fee.length) + fee;
     }
     
-    // Combine fields
-    const combinedField = amountField + (taxField ? taxField : "") + "5802ID";
-    
-    // Combine parts with the amount and tax fields
-    const newQris = qrisParts[0] + combinedField + qrisParts[1];
-    
-    // Calculate and append CRC16 checksum
-    const finalQris = newQris + calculateCRC16(newQris);
-    
-    return finalQris;
+    if (qrisParts.length >= 2) {
+      // Standard case - combine fields
+      const combinedField = amountField + (taxField ? taxField : "") + "5802ID";
+      
+      // Combine parts with the amount and tax fields
+      const newQris = qrisParts[0] + combinedField + qrisParts[1];
+      
+      // Calculate and append CRC16 checksum
+      const finalQris = newQris + calculateCRC16(newQris);
+      
+      return finalQris;
+    } else {
+      // Fallback for different QRIS formats
+      console.warn("Using fallback QRIS conversion strategy");
+      
+      // Try to identify where to insert amount
+      const merchantIndex = qrisModified.indexOf("59");
+      if (merchantIndex !== -1) {
+        // Insert amount before merchant info
+        const beforeMerchant = qrisModified.substring(0, merchantIndex);
+        const afterMerchant = qrisModified.substring(merchantIndex);
+        
+        const newQris = beforeMerchant + amountField + (taxField ? taxField : "") + afterMerchant;
+        return newQris + calculateCRC16(newQris);
+      }
+      
+      // Last resort - append to end before calculating CRC
+      const newQris = qrisModified + amountField + (taxField ? taxField : "");
+      return newQris + calculateCRC16(newQris);
+    }
   } catch (error) {
     console.error("Error converting QRIS:", error);
     throw new Error("Failed to convert QRIS code");

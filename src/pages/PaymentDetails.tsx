@@ -3,26 +3,18 @@ import { useState, useEffect } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { PaymentService } from "@/utils/paymentService";
 import { Payment } from "@/types/payment";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Layout from "@/components/Layout";
-import { useToast } from "@/hooks/use-toast";
-import { formatDistanceToNow } from "date-fns";
-import { Download, Copy, Share2, Barcode, Info } from "lucide-react";
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(amount);
-};
+import PaymentHeader from "@/components/payment/PaymentHeader";
+import PaymentAmount from "@/components/payment/PaymentAmount";
+import PaymentInfo from "@/components/payment/PaymentInfo";
+import QRCodeDisplay from "@/components/payment/QRCodeDisplay";
+import PaymentActions from "@/components/payment/PaymentActions";
 
 const PaymentDetails = () => {
   const { id } = useParams<{ id: string }>();
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (id) {
@@ -48,158 +40,31 @@ const PaymentDetails = () => {
     return <Navigate to="/not-found" replace />;
   }
 
-  const copyPaymentLink = () => {
-    const baseUrl = window.location.origin;
-    const paymentLink = `${baseUrl}/payment/${payment.id}`;
-    
-    navigator.clipboard.writeText(paymentLink).then(() => {
-      toast({
-        title: "Link copied!",
-        description: "Payment link has been copied to clipboard",
-      });
-    });
-  };
-
-  const downloadQR = () => {
-    if (!payment.qrImageUrl) return;
-    
-    const link = document.createElement("a");
-    link.href = payment.qrImageUrl;
-    link.download = `qris-payment-${payment.id}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast({
-      title: "QR Code downloaded",
-      description: "The QR code with embedded amount has been downloaded",
-    });
-  };
-
-  const sharePayment = async () => {
-    const baseUrl = window.location.origin;
-    const paymentLink = `${baseUrl}/payment/${payment.id}`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "QRIS Payment",
-          text: `Payment of ${formatCurrency(payment.amount)}`,
-          url: paymentLink,
-        });
-      } catch (error) {
-        console.error("Error sharing:", error);
-      }
-    } else {
-      copyPaymentLink();
-    }
-  };
-
-  // Calculate expiry time (30 minutes from creation)
-  const expiryTime = payment.qrisRequestDate 
-    ? new Date(new Date(payment.qrisRequestDate).getTime() + 30 * 60 * 1000) 
-    : null;
-
-  const isExpired = expiryTime ? new Date() > expiryTime : false;
-  const expiryTimeString = expiryTime ? 
-    `${expiryTime.getHours().toString().padStart(2, '0')}:${expiryTime.getMinutes().toString().padStart(2, '0')}` : 
-    '';
-
   return (
     <Layout>
       <div className="max-w-md mx-auto py-6">
         <Card className="overflow-hidden">
-          <div className="bg-qris-red text-white p-4 text-center">
-            <h2 className="text-2xl font-bold">Payment Details</h2>
-            <p className="opacity-90">
-              Created {formatDistanceToNow(new Date(payment.createdAt), { addSuffix: true })}
-            </p>
-          </div>
+          <PaymentHeader createdAt={payment.createdAt} />
           
           <CardContent className="p-6">
             <div className="mb-6">
-              <div className="text-center mb-4">
-                <span className="text-gray-500 text-sm">Amount</span>
-                <p className="text-3xl font-bold">{formatCurrency(payment.amount)}</p>
-              </div>
+              <PaymentAmount amount={payment.amount} />
               
-              {(payment.buyerName || payment.bankSender || payment.note) && (
-                <div className="bg-gray-50 p-3 rounded-lg mb-4">
-                  {payment.buyerName && (
-                    <p className="text-sm mb-1">
-                      <span className="font-medium">Name:</span> {payment.buyerName}
-                    </p>
-                  )}
-                  {payment.bankSender && (
-                    <p className="text-sm mb-1">
-                      <span className="font-medium">Sender:</span> {payment.bankSender}
-                    </p>
-                  )}
-                  {payment.note && (
-                    <p className="text-sm">
-                      <span className="font-medium">Note:</span> {payment.note}
-                    </p>
-                  )}
-                </div>
-              )}
+              <PaymentInfo 
+                buyerName={payment.buyerName}
+                bankSender={payment.bankSender}
+                note={payment.note}
+              />
               
-              <div className="flex justify-center mb-6">
-                {payment.qrImageUrl && (
-                  <div className="flex flex-col items-center bg-white p-4 border rounded-lg shadow-md">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Barcode className="h-4 w-4 text-qris-red" />
-                      <div className="text-center font-semibold">QRIS - Jedo Store</div>
-                    </div>
-                    <img 
-                      src={payment.qrImageUrl} 
-                      alt="QRIS Payment QR Code with Amount"
-                      className="max-w-full"
-                      style={{width: 'auto', height: 'auto', maxHeight: '300px'}}
-                    />
-                    <div className="text-center mt-4 bg-gray-100 p-2 rounded w-full">
-                      <div className="font-bold mb-1">Total Bayar: {formatCurrency(payment.amount)}</div>
-                      <div className="text-xs">NMID: {payment.qrisNmid || "ID1024313642810"}</div>
-                      {expiryTimeString && (
-                        <div className="text-xs mt-1">
-                          {isExpired ? (
-                            <span className="text-red-600">EXPIRED</span>
-                          ) : (
-                            <span>Valid until {expiryTimeString} WIB</span>
-                          )}
-                        </div>
-                      )}
-                      <div className="flex justify-center items-center gap-1 mt-2">
-                        <Info className="h-3 w-3 text-gray-500" />
-                        <div className="text-sm text-gray-600">QR sudah terisi nominal {formatCurrency(payment.amount)}</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <QRCodeDisplay 
+                qrImageUrl={payment.qrImageUrl}
+                amount={payment.amount}
+                qrisNmid={payment.qrisNmid}
+                merchantName={payment.merchantName}
+                qrisRequestDate={payment.qrisRequestDate}
+              />
               
-              <div className="grid gap-3">
-                <Button 
-                  onClick={downloadQR} 
-                  className="bg-qris-red hover:bg-red-700"
-                  disabled={!payment.qrImageUrl}
-                >
-                  <Download className="mr-2 h-4 w-4" /> Download QR Code
-                </Button>
-                
-                <Button 
-                  onClick={copyPaymentLink} 
-                  variant="outline"
-                >
-                  <Copy className="mr-2 h-4 w-4" /> Copy Payment Link
-                </Button>
-                
-                <Button 
-                  onClick={sharePayment} 
-                  variant="outline"
-                >
-                  <Share2 className="mr-2 h-4 w-4" /> Share Payment
-                </Button>
-              </div>
+              <PaymentActions payment={payment} />
             </div>
           </CardContent>
         </Card>

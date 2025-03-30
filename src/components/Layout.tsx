@@ -1,7 +1,10 @@
 
 import { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Home, ClipboardList } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Home, ClipboardList, LogOut, User } from "lucide-react";
+import { useAuth } from "@/context/AuthProvider";
+import { Button } from "./ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,6 +12,27 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out",
+      });
+      navigate('/auth');
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error signing out",
+        description: "An error occurred while signing out",
+        variant: "destructive",
+      });
+    }
+  };
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -22,6 +46,23 @@ const Layout = ({ children }: LayoutProps) => {
             />
             <span>QRIS PayLink Genius</span>
           </Link>
+          
+          {user && (
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-2">
+                <User size={18} />
+                <span className="text-sm">{user.email}</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                className="text-white hover:bg-red-700" 
+                onClick={handleSignOut}
+              >
+                <LogOut size={18} className="mr-2" />
+                <span className="hidden md:inline">Sign Out</span>
+              </Button>
+            </div>
+          )}
         </div>
       </header>
       

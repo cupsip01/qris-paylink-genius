@@ -28,11 +28,11 @@ export default function AuthPage() {
       <div className="bg-qris-red text-white p-4">
         <div className="container mx-auto flex justify-center items-center">
           <img 
-            src="/lovable-uploads/89669813-4cf6-4b05-ba0e-c2b29e252649.png" 
+            src="/logokeuanganpay.webp" 
             alt="QRIS Logo" 
             className="h-10 w-auto" 
           />
-          <span className="text-2xl font-bold ml-2">QRIS PayLink Genius</span>
+          <span className="text-2xl font-bold ml-2">QRIS Keuangan Pribadi</span>
         </div>
       </div>
 
@@ -44,7 +44,7 @@ export default function AuthPage() {
 
       <footer className="bg-gray-100 py-4">
         <div className="container mx-auto text-center text-gray-500 text-sm">
-          &copy; {new Date().getFullYear()} QRIS PayLink Genius. All rights reserved.
+          &copy; {new Date().getFullYear()} QRIS Keuangan Pribadi. All rights reserved.
         </div>
       </footer>
     </div>

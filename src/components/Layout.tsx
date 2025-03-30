@@ -40,11 +40,11 @@ const Layout = ({ children }: LayoutProps) => {
         <div className="container mx-auto flex justify-between items-center">
           <Link to="/" className="text-2xl font-bold flex items-center gap-2">
             <img 
-              src="/lovable-uploads/89669813-4cf6-4b05-ba0e-c2b29e252649.png" 
+              src="/logokeuanganpay.webp" 
               alt="QRIS Logo" 
               className="h-10 w-auto" 
             />
-            <span>QRIS PayLink Genius</span>
+            <span>QRIS Keuangan Pribadi</span>
           </Link>
           
           {user && (

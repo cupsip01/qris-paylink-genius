@@ -64,7 +64,7 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				qris: {
-					red: '#E40046',
+					red: '#118B50',
 					black: '#111111',
 					gray: '#F5F5F5'
 				}

@@ -20,4 +20,8 @@ export interface Payment {
   // Added fields for static QRIS handling
   staticQrisContent?: string; // The original static QRIS content
   dynamicQrisContent?: string; // The dynamic QRIS with embedded amount
+  merchantName?: string; // Merchant name extracted from QRIS
+  taxType?: 'p' | 'r'; // Tax type (percentage or rupiah)
+  fee?: string; // Fee amount
+  qrisId?: string; // QRIS ID type (01 or A01)
 }

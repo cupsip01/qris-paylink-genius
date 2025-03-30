@@ -1,3 +1,4 @@
+
 import { Payment } from "@/types/payment";
 import QRCode from "qrcode";
 import { convertStaticToDynamicQRIS, parseQrisData } from "./qrisUtils";
@@ -40,7 +41,9 @@ const createPayment = async (
   note?: string,
   buyerName?: string,
   bankSender?: string,
-  useCustomQr: boolean = true
+  useCustomQr: boolean = true,
+  taxType: 'p' | 'r' = 'p',
+  fee: string = '0'
 ): Promise<Payment> => {
   const id = Math.random().toString(36).substring(2, 15);
   
@@ -56,6 +59,8 @@ const createPayment = async (
   let qrisInvoiceId = '';
   let qrisNmid = '';
   let qrisRequestDate = '';
+  let merchantName = '';
+  let qrisId = '';
   
   try {
     // In a real implementation, you would get the static QRIS from a QR code scan
@@ -65,9 +70,11 @@ const createPayment = async (
     // Parse QRIS data to get merchant info
     const qrisData = parseQrisData(staticQrisContent);
     qrisNmid = qrisData.nmid || "ID1020021181745";
+    merchantName = qrisData.merchantName || "Jedo Store";
+    qrisId = qrisData.id || "01";
     
     // Convert static QRIS to dynamic QRIS with embedded amount
-    dynamicQrisContent = convertStaticToDynamicQRIS(staticQrisContent, amount);
+    dynamicQrisContent = convertStaticToDynamicQRIS(staticQrisContent, amount, taxType, fee);
     
     // Use the dynamic QRIS content as the QRIS content
     qrisContent = dynamicQrisContent;
@@ -84,6 +91,7 @@ const createPayment = async (
     // Fallback to basic QR if conversion fails
     qrisContent = `00020101021226650014ID.CO.QRIS.WWW011893600914ID102431364281054${amount.toString().length.toString().padStart(2, '0')}${amount}5802ID5910Jedo Store6013Jakarta610560136621304${cliTrxNumber}`;
     qrImageUrl = await generateQRCode(qrisContent);
+    merchantName = "Jedo Store";
   }
 
   const newPayment: Payment = {
@@ -104,7 +112,11 @@ const createPayment = async (
     qrisInvoiceId: qrisInvoiceId,
     qrisNmid: qrisNmid,
     qrisRequestDate: qrisRequestDate,
-    cliTrxNumber: cliTrxNumber
+    cliTrxNumber: cliTrxNumber,
+    merchantName: merchantName,
+    taxType: taxType,
+    fee: fee,
+    qrisId: qrisId
   };
 
   const payments = getPayments();

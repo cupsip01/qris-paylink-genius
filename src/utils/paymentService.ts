@@ -1,10 +1,13 @@
-
 import { Payment } from "@/types/payment";
 import QRCode from "qrcode";
+import { convertStaticToDynamicQRIS, parseQrisData } from "./qrisUtils";
 
 // In a real app, this would be a backend call
 // For demo purposes, we're using localStorage
 const STORAGE_KEY = "qris_payments";
+
+// Example static QRIS content (in a real app, this would come from the merchant's QR scan)
+const STATIC_QRIS = "00020101021126570011ID.DANA.WWW011893600915302259148102090225914810303UMI51440014ID.CO.QRIS.WWW0215ID10200176114730303UMI5204581253033605802ID5922Warung Sayur Bu Sugeng6010Kab. Demak610559567630458C7";
 
 const generateQRCode = async (text: string): Promise<string> => {
   try {
@@ -47,52 +50,39 @@ const createPayment = async (
   // Generate transaction reference number based on id
   const cliTrxNumber = `TR${id.substring(0, 6).toUpperCase()}`;
   
-  // QRIS API parameters
-  const params = new URLSearchParams({
-    do: 'create-invoice',
-    apikey: 'a789789', // Replace with your actual API key
-    mID: '123456', // Replace with your actual merchant ID
-    cliTrxNumber: cliTrxNumber,
-    cliTrxAmount: amount.toString(),
-    useTip: 'no'
-  });
-  
   let qrisContent = '';
+  let dynamicQrisContent = '';
   let qrImageUrl = '';
   let qrisInvoiceId = '';
   let qrisNmid = '';
   let qrisRequestDate = '';
   
   try {
-    // In a real implementation, you would call the actual API
-    // For demo purposes, we'll simulate the API call with the QRIS format
-    // fetch(`https://qris.interactive.co.id/restapi/qris/show_qris.php?${params.toString()}`)
+    // In a real implementation, you would get the static QRIS from a QR code scan
+    // or from a saved value in your database
+    const staticQrisContent = STATIC_QRIS;
     
-    // Simulate API response for demo
-    // This is a placeholder. In production, use the actual API response
-    const merchantId = "ID1024313642810"; // This would come from the API
+    // Parse QRIS data to get merchant info
+    const qrisData = parseQrisData(staticQrisContent);
+    qrisNmid = qrisData.nmid || "ID1020021181745";
     
-    // Simulate QRIS content from API
-    // In a real implementation, this would be the qris_content from the API response
-    qrisContent = `00020101021226680016ID.CO.PJSP.WWW011893600914${merchantId}0215${merchantId}0303UMI51440014ID.CO.QRIS.WWW0215ID${merchantId}0303UMI52045732530336054082${amount}5502015802ID5916Jedo Store6007Jakarta61056013662130509${cliTrxNumber}`;
+    // Convert static QRIS to dynamic QRIS with embedded amount
+    dynamicQrisContent = convertStaticToDynamicQRIS(staticQrisContent, amount);
     
-    // Generate QR code from QRIS content
-    qrImageUrl = await generateQRCode(qrisContent);
+    // Use the dynamic QRIS content as the QRIS content
+    qrisContent = dynamicQrisContent;
+    
+    // Generate QR code from the dynamic QRIS content
+    qrImageUrl = await generateQRCode(dynamicQrisContent);
     
     // Set values that would come from API
     qrisInvoiceId = cliTrxNumber;
-    qrisNmid = merchantId;
     qrisRequestDate = new Date().toISOString();
     
   } catch (error) {
     console.error("Error generating QRIS:", error);
-    // Fallback to basic QR if API fails
-    const amountString = amount.toString();
-    const amountLength = amountString.length.toString().padStart(2, '0');
-    const amountField = `54${amountLength}${amountString}`;
-    
-    const merchantId = "ID1024313642810"; 
-    qrisContent = `00020101021226650014ID.CO.QRIS.WWW011893600914${merchantId}5204581453033605802ID5924Jedo Store6007Jakarta6304${amountField}`;
+    // Fallback to basic QR if conversion fails
+    qrisContent = `00020101021226650014ID.CO.QRIS.WWW011893600914ID102431364281054${amount.toString().length.toString().padStart(2, '0')}${amount}5802ID5910Jedo Store6013Jakarta610560136621304${cliTrxNumber}`;
     qrImageUrl = await generateQRCode(qrisContent);
   }
 
@@ -106,9 +96,11 @@ const createPayment = async (
     status: "pending",
     qrImageUrl,
     useCustomQr,
-    originalMerchantQrImage: "/lovable-uploads/77d1e713-7a92-4d6e-9b4d-a61ea8274672.png",
+    originalMerchantQrImage: "/lovable-uploads/bf9cac39-aefe-4140-97a5-1b3926f4b651.png",
     formattedAmount: formattedAmount,
     qrisContent: qrisContent,
+    staticQrisContent: STATIC_QRIS,
+    dynamicQrisContent: dynamicQrisContent,
     qrisInvoiceId: qrisInvoiceId,
     qrisNmid: qrisNmid,
     qrisRequestDate: qrisRequestDate,

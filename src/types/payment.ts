@@ -16,4 +16,8 @@ export interface Payment {
   qrisNmid?: string; // National Merchant ID
   qrisRequestDate?: string; // Request date from API
   cliTrxNumber?: string; // Transaction reference number
+  
+  // Added fields for static QRIS handling
+  staticQrisContent?: string; // The original static QRIS content
+  dynamicQrisContent?: string; // The dynamic QRIS with embedded amount
 }

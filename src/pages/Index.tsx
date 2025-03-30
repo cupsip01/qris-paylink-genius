@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -26,10 +27,31 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Function to format input with thousand separators
+  const formatAmountInput = (value: string) => {
+    // Remove non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    // Format with thousand separators
+    if (digits) {
+      const number = parseInt(digits, 10);
+      return number.toLocaleString('id-ID');
+    }
+    return '';
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatAmountInput(e.target.value);
+    setAmount(formattedValue);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+    // Convert formatted amount to number
+    const numericAmount = parseInt(amount.replace(/\D/g, ''), 10);
+    
+    if (isNaN(numericAmount) || numericAmount <= 0) {
       toast({
         title: "Invalid amount",
         description: "Please enter a valid payment amount",
@@ -42,7 +64,7 @@ const Index = () => {
     
     try {
       const payment = await PaymentService.createPayment(
-        Number(amount),
+        numericAmount,
         note,
         buyerName,
         bankSender,
@@ -87,10 +109,9 @@ const Index = () => {
                   <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
                   <Input
                     id="amount"
-                    type="number"
-                    placeholder="100000"
+                    placeholder="100.000"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={handleAmountChange}
                     className="pl-10"
                     required
                   />

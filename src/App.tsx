@@ -11,7 +11,9 @@ import History from "./pages/History";
 import PaymentDetails from "./pages/PaymentDetails";
 import AuthPage from "./pages/AuthPage";
 import { AuthProvider } from "./context/AuthProvider";
+import Layout from "@/components/Layout";
 
+// Initialize the query client outside the component
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -22,7 +24,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Layout><Index /></Layout>} />
             <Route path="/history" element={<History />} />
             <Route path="/payment/:id" element={<PaymentDetails />} />
             <Route path="/auth" element={<AuthPage />} />

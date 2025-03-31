@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { PaymentService } from "@/utils/paymentService";
@@ -16,16 +16,6 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import Layout from "@/components/Layout";
-import { 
   CreditCard, 
   Upload, 
   FileUp, 
@@ -37,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthProvider";
+import SettingsDialog from "@/components/payment/SettingsDialog";
 
 const Index = () => {
   const [amount, setAmount] = useState("");
@@ -56,6 +47,17 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast: uiToast } = useToast();
   const { user } = useAuth();
+
+  // Load default QR and WhatsApp settings on component mount
+  useEffect(() => {
+    const savedQr = localStorage.getItem('defaultQrImage');
+    const savedWhatsApp = localStorage.getItem('adminWhatsApp');
+    const savedMessage = localStorage.getItem('whatsAppMessage');
+    
+    if (savedQr) setDefaultQrImage(savedQr);
+    if (savedWhatsApp) setAdminWhatsApp(savedWhatsApp);
+    if (savedMessage) setWhatsAppMessage(savedMessage);
+  }, []);
 
   // Function to format input with thousand separators
   const formatAmountInput = (value: string) => {
@@ -248,343 +250,217 @@ const Index = () => {
     }
   };
 
-  // Load default QR and WhatsApp settings on component mount
-  useState(() => {
-    const savedQr = localStorage.getItem('defaultQrImage');
-    const savedWhatsApp = localStorage.getItem('adminWhatsApp');
-    const savedMessage = localStorage.getItem('whatsAppMessage');
-    
-    if (savedQr) setDefaultQrImage(savedQr);
-    if (savedWhatsApp) setAdminWhatsApp(savedWhatsApp);
-    if (savedMessage) setWhatsAppMessage(savedMessage);
-  });
-
   return (
-    <Layout>
-      <div className="max-w-md mx-auto py-6 px-4">
-        <Tabs defaultValue="create" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="create">Create New Payment</TabsTrigger>
-            <TabsTrigger value="upload">Upload QRIS Code</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="create">
-            <Card>
-              <CardHeader className="space-y-1">
-                <CardTitle className="text-2xl font-bold text-center">
-                  Create New Payment
-                </CardTitle>
-                <CardDescription className="text-center">
-                  Generate a QRIS code for your customer
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="amount">Amount (Rp)</Label>
-                    <div className="relative">
-                      <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                      <Input
-                        id="amount"
-                        placeholder="100.000"
-                        value={amount}
-                        onChange={handleAmountChange}
-                        className="pl-10"
-                        required
+    <div className="max-w-md mx-auto py-6 px-4">
+      <Tabs defaultValue="create" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="create">Create New Payment</TabsTrigger>
+          <TabsTrigger value="upload">Upload QRIS Code</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="create">
+          <Card>
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-bold text-center">
+                Create New Payment
+              </CardTitle>
+              <CardDescription className="text-center">
+                Generate a QRIS code for your customer
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount (Rp)</Label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                    <Input
+                      id="amount"
+                      placeholder="100.000"
+                      value={amount}
+                      onChange={handleAmountChange}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="buyerName">Buyer Name (Optional)</Label>
+                  <Input
+                    id="buyerName"
+                    placeholder="John Doe"
+                    value={buyerName}
+                    onChange={(e) => setBuyerName(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="bankSender">Bank/Sender (Optional)</Label>
+                  <Input
+                    id="bankSender"
+                    placeholder="BCA - Andi"
+                    value={bankSender}
+                    onChange={(e) => setBankSender(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="note">Note (Optional)</Label>
+                  <Textarea
+                    id="note"
+                    placeholder="Add any additional notes here..."
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                </div>
+                
+                <Button
+                  type="submit"
+                  className="w-full bg-qris-red hover:bg-red-700"
+                  disabled={loading}
+                >
+                  {loading ? "Generating..." : "Generate Payment"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="upload">
+          <Card>
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-bold text-center">
+                Upload QRIS Code
+              </CardTitle>
+              <CardDescription className="text-center">
+                Upload your static QRIS code and convert it to dynamic
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div 
+                  className={`border-2 border-dashed ${uploadError ? 'border-red-300' : 'border-gray-300'} rounded-lg p-6 text-center relative overflow-hidden`}
+                  style={{minHeight: '150px'}}
+                >
+                  {uploadedQrImage || defaultQrImage ? (
+                    <div className="flex flex-col items-center">
+                      <img 
+                        src={uploadedQrImage || defaultQrImage} 
+                        alt="Uploaded QR" 
+                        className="max-h-40 object-contain mb-2" 
                       />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setUploadedQrImage(null)}
+                      >
+                        Remove
+                      </Button>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="buyerName">Buyer Name (Optional)</Label>
-                    <Input
-                      id="buyerName"
-                      placeholder="John Doe"
-                      value={buyerName}
-                      onChange={(e) => setBuyerName(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="bankSender">Bank/Sender (Optional)</Label>
-                    <Input
-                      id="bankSender"
-                      placeholder="BCA - Andi"
-                      value={bankSender}
-                      onChange={(e) => setBankSender(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="note">Note (Optional)</Label>
-                    <Textarea
-                      id="note"
-                      placeholder="Add any additional notes here..."
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                    />
-                  </div>
-                  
-                  <Button
-                    type="submit"
-                    className="w-full bg-qris-red hover:bg-red-700"
-                    disabled={loading}
-                  >
-                    {loading ? "Generating..." : "Generate Payment"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="upload">
-            <Card>
-              <CardHeader className="space-y-1">
-                <CardTitle className="text-2xl font-bold text-center">
-                  Upload QRIS Code
-                </CardTitle>
-                <CardDescription className="text-center">
-                  Upload your static QRIS code and convert it to dynamic
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div 
-                    className={`border-2 border-dashed ${uploadError ? 'border-red-300' : 'border-gray-300'} rounded-lg p-6 text-center relative overflow-hidden`}
-                    style={{minHeight: '150px'}}
-                  >
-                    {uploadedQrImage || defaultQrImage ? (
-                      <div className="flex flex-col items-center">
-                        <img 
-                          src={uploadedQrImage || defaultQrImage} 
-                          alt="Uploaded QR" 
-                          className="max-h-40 object-contain mb-2" 
-                        />
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setUploadedQrImage(null)}
-                        >
-                          Remove
-                        </Button>
+                  ) : (
+                    <>
+                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                      <div className="mt-2">
+                        <Label htmlFor="qris-file" className="cursor-pointer text-blue-600 hover:text-blue-800 block">
+                          Upload QRIS image
+                        </Label>
+                        <p className="text-xs text-gray-500 mt-1">
+                          PNG, JPG up to 10MB
+                        </p>
                       </div>
-                    ) : (
-                      <>
-                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                        <div className="mt-2">
-                          <Label htmlFor="qris-file" className="cursor-pointer text-blue-600 hover:text-blue-800 block">
-                            Upload QRIS image
-                          </Label>
-                          <p className="text-xs text-gray-500 mt-1">
-                            PNG, JPG up to 10MB
-                          </p>
-                        </div>
-                      </>
-                    )}
-                    
-                    <Input
-                      id="qris-file"
-                      type="file"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                    />
-                  </div>
-                  
-                  {uploadError && (
-                    <div className="flex items-center gap-2 text-red-500 text-sm">
-                      <AlertCircle size={16} />
-                      <span>{uploadError}</span>
-                    </div>
+                    </>
                   )}
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="qris-text">QRIS Code Text</Label>
-                    <Textarea
-                      id="qris-text"
-                      placeholder="Paste your QRIS code text here..."
-                      value={qrisText}
-                      onChange={(e) => setQrisText(e.target.value)}
-                      className="h-24"
+                  <Input
+                    id="qris-file"
+                    type="file"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                  />
+                </div>
+                
+                {uploadError && (
+                  <div className="flex items-center gap-2 text-red-500 text-sm">
+                    <AlertCircle size={16} />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="qris-text">QRIS Code Text</Label>
+                  <Textarea
+                    id="qris-text"
+                    placeholder="Paste your QRIS code text here..."
+                    value={qrisText}
+                    onChange={(e) => setQrisText(e.target.value)}
+                    className="h-24"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="upload-amount">Amount (Rp)</Label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                    <Input
+                      id="upload-amount"
+                      placeholder="100.000"
+                      value={amount}
+                      onChange={handleAmountChange}
+                      className="pl-10"
+                      required
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="upload-amount">Amount (Rp)</Label>
-                    <div className="relative">
-                      <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                      <Input
-                        id="upload-amount"
-                        placeholder="100.000"
-                        value={amount}
-                        onChange={handleAmountChange}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="upload-note">Note (Optional)</Label>
-                    <Textarea
-                      id="upload-note"
-                      placeholder="Add any additional notes here..."
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                    />
-                  </div>
-                  
-                  <Button
-                    type="button"
-                    className="w-full bg-qris-red hover:bg-red-700"
-                    disabled={loading}
-                    onClick={processUploadedQris}
-                  >
-                    <FileUp className="mr-2 h-4 w-4" />
-                    {loading ? "Processing..." : "Process QRIS"}
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="upload-note">Note (Optional)</Label>
+                  <Textarea
+                    id="upload-note"
+                    placeholder="Add any additional notes here..."
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        
-        {/* Settings Dialog */}
-        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="fixed bottom-4 right-4 rounded-full shadow-lg z-50"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <SettingsIcon className="h-5 w-5" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Settings</DialogTitle>
-              <DialogDescription>
-                Configure your payment and WhatsApp settings
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-6 py-4">
-              <div>
-                <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-                  <QrCode className="h-4 w-4" /> Default QR Code
-                </h3>
-                <div className="border rounded-md p-4">
-                  <div className="flex flex-col items-center justify-center mb-4">
-                    {defaultQrImage ? (
-                      <div className="relative">
-                        <img 
-                          src={defaultQrImage} 
-                          alt="Default QR" 
-                          className="w-40 h-40 object-contain" 
-                        />
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            setDefaultQrImage(null);
-                            localStorage.removeItem('defaultQrImage');
-                          }}
-                          className="mt-2 mx-auto block"
-                        >
-                          Remove Default QR
-                        </Button>
-                      </div>
-                    ) : (
-                      <div 
-                        className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center relative overflow-hidden w-full"
-                        style={{minHeight: '150px'}}
-                      >
-                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                        <div className="mt-2">
-                          <Label htmlFor="default-qr-file" className="cursor-pointer text-blue-600 hover:text-blue-800 block">
-                            Upload Default QR
-                          </Label>
-                          <p className="text-xs text-gray-500 mt-1">
-                            This will be used as default for new payments
-                          </p>
-                        </div>
-                        
-                        <Input
-                          id="default-qr-file"
-                          type="file"
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          accept="image/*"
-                          onChange={handleDefaultQrUpload}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
+                
+                <Button
+                  type="button"
+                  className="w-full bg-qris-red hover:bg-red-700"
+                  disabled={loading}
+                  onClick={processUploadedQris}
+                >
+                  <FileUp className="mr-2 h-4 w-4" />
+                  {loading ? "Processing..." : "Process QRIS"}
+                </Button>
               </div>
-              
-              <div>
-                <h3 className="text-sm font-medium mb-2">Admin WhatsApp Settings</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="admin-whatsapp">WhatsApp Number</Label>
-                    <Input 
-                      id="admin-whatsapp" 
-                      value={adminWhatsApp}
-                      onChange={(e) => setAdminWhatsApp(e.target.value)}
-                      placeholder="e.g. 628123456789"
-                    />
-                    <p className="text-xs text-gray-500">
-                      Include country code without + (e.g., 628123456789)
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="whatsapp-message">Default Message</Label>
-                    <Textarea
-                      id="whatsapp-message"
-                      value={whatsAppMessage}
-                      onChange={(e) => setWhatsAppMessage(e.target.value)}
-                      placeholder="Default message for payment confirmation"
-                      className="min-h-24"
-                    />
-                    <p className="text-xs text-gray-500">
-                      This message will be sent when a customer confirms payment
-                    </p>
-                  </div>
-                  
-                  <Button 
-                    onClick={saveWhatsAppSettings}
-                    className="w-full"
-                  >
-                    Save WhatsApp Settings
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
-            <DialogFooter className="sm:justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setSettingsOpen(false)}
-              >
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        
-        {/* Navigation buttons at bottom */}
-        <div className="fixed bottom-4 left-4 space-x-2 z-50">
-          <Link to="/history">
-            <Button variant="outline" size="icon" className="rounded-full shadow-lg">
-              <History className="h-5 w-5" />
-            </Button>
-          </Link>
-        </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Settings Dialog */}
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      
+      {/* Navigation buttons at bottom */}
+      <div className="fixed bottom-4 left-4 space-x-2 z-50">
+        <Link to="/history">
+          <Button variant="outline" size="icon" className="rounded-full shadow-lg">
+            <History className="h-5 w-5" />
+          </Button>
+        </Link>
       </div>
-    </Layout>
+      
+      {/* Settings button */}
+      <Button
+        variant="outline"
+        size="icon"
+        className="fixed bottom-4 right-4 rounded-full shadow-lg z-50"
+        onClick={() => setSettingsOpen(true)}
+      >
+        <SettingsIcon className="h-5 w-5" />
+      </Button>
+    </div>
   );
 };
 

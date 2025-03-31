@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { Profile } from "@/types/profiles";
 
 export default function SettingsPage() {
   const { user, signOut, loading } = useAuth();
@@ -107,7 +108,7 @@ export default function SettingsPage() {
       const { error } = await supabase
         .from('profiles')
         .update({
-          settings: {
+          preferences: {
             whatsAppNumber: adminWhatsApp,
             whatsAppMessage: whatsAppMessage,
             theme: theme
@@ -129,14 +130,18 @@ export default function SettingsPage() {
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('settings')
+        .select('preferences')
         .eq('id', user.id)
         .single();
         
       if (error) throw error;
       
-      if (data?.settings) {
-        const { whatsAppNumber, whatsAppMessage, theme: savedTheme } = data.settings;
+      if (data?.preferences) {
+        const { whatsAppNumber, whatsAppMessage, theme: savedTheme } = data.preferences as {
+          whatsAppNumber?: string;
+          whatsAppMessage?: string;
+          theme?: 'light' | 'dark';
+        };
         
         if (whatsAppNumber) setAdminWhatsApp(whatsAppNumber);
         if (whatsAppMessage) setWhatsAppMessage(whatsAppMessage);

@@ -19,6 +19,11 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Inter var', 'Inter', 'sans-serif'],
+				poppins: ['Poppins', 'sans-serif'],
+				jakarta: ['Plus Jakarta Sans', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -68,7 +73,7 @@ export default {
 					black: '#111111',
 					gray: '#F5F5F5'
 				},
-				// New vibrant color palette
+				// Vibrant color palette
 				violet: {
 					50: '#f5f3ff',
 					100: '#ede9fe',
@@ -108,11 +113,6 @@ export default {
 					900: '#78350f',
 					950: '#451a03',
 				}
-			},
-			fontFamily: {
-				poppins: ['Poppins', 'sans-serif'],
-				jakarta: ['Plus Jakarta Sans', 'sans-serif'],
-				sans: ['DM Sans', 'sans-serif'],
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -163,6 +163,11 @@ export default {
 					'50%': {
 						opacity: '0.8'
 					}
+				},
+				'gradient-animation': {
+					'0%': { backgroundPosition: '0% 50%' },
+					'50%': { backgroundPosition: '100% 50%' },
+					'100%': { backgroundPosition: '0% 50%' },
 				}
 			},
 			animation: {
@@ -170,8 +175,12 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.4s ease-out',
 				'slide-in': 'slide-in 0.4s ease-out',
-				'pulse-slow': 'pulse-slow 3s ease-in-out infinite'
-			}
+				'pulse-slow': 'pulse-slow 3s ease-in-out infinite',
+				'gradient': 'gradient-animation 3s ease infinite',
+			},
+			backgroundSize: {
+				'300%': '300%',
+			},
 		}
 	},
 	plugins: [require("tailwindcss-animate")],

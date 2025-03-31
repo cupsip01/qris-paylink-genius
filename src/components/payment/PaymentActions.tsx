@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Download, Copy, Share2 } from "lucide-react";
 import { Payment } from "@/types/payment";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 interface PaymentActionsProps {
   payment: Payment;
@@ -60,27 +62,47 @@ const PaymentActions = ({ payment }: PaymentActionsProps) => {
 
   return (
     <div className="grid gap-3">
-      <Button 
-        onClick={downloadQR} 
-        className="bg-qris-red hover:bg-red-700"
-        disabled={!payment.qrImageUrl}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
       >
-        <Download className="mr-2 h-4 w-4" /> Download QR Code
-      </Button>
+        <Button 
+          onClick={downloadQR} 
+          className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 transition-all duration-300"
+          disabled={!payment.qrImageUrl}
+        >
+          <Download className="mr-2 h-4 w-4" /> Download QR Code
+        </Button>
+      </motion.div>
       
-      <Button 
-        onClick={copyPaymentLink} 
-        variant="outline"
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
       >
-        <Copy className="mr-2 h-4 w-4" /> Copy Payment Link
-      </Button>
+        <Button 
+          onClick={copyPaymentLink} 
+          variant="outline"
+          className="w-full border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-900/30"
+        >
+          <Copy className="mr-2 h-4 w-4 text-violet-600 dark:text-violet-400" /> Copy Payment Link
+        </Button>
+      </motion.div>
       
-      <Button 
-        onClick={sharePayment} 
-        variant="outline"
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
       >
-        <Share2 className="mr-2 h-4 w-4" /> Share Payment
-      </Button>
+        <Button 
+          onClick={sharePayment} 
+          variant="outline"
+          className="w-full border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+        >
+          <Share2 className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Share Payment
+        </Button>
+      </motion.div>
     </div>
   );
 };

@@ -15,9 +15,28 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import Layout from "@/components/Layout";
-import { CreditCard, Upload, FileUp, AlertCircle } from "lucide-react";
+import { 
+  CreditCard, 
+  Upload, 
+  FileUp, 
+  AlertCircle, 
+  Settings as SettingsIcon,
+  History,
+  QrCode
+} from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthProvider";
 
 const Index = () => {
   const [amount, setAmount] = useState("");
@@ -29,9 +48,14 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("create");
   const [uploadedQrImage, setUploadedQrImage] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [adminWhatsApp, setAdminWhatsApp] = useState("628123456789");
+  const [whatsAppMessage, setWhatsAppMessage] = useState("Halo admin, saya sudah transfer untuk pesanan");
+  const [defaultQrImage, setDefaultQrImage] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const { toast: uiToast } = useToast();
+  const { user } = useAuth();
 
   // Function to format input with thousand separators
   const formatAmountInput = (value: string) => {
@@ -76,14 +100,54 @@ const Index = () => {
     reader.onload = (event) => {
       if (event.target?.result) {
         setUploadedQrImage(event.target.result as string);
-        // Here we would ideally extract QRIS text from image
-        // For now, just notify the user they need to enter the text manually
-        toast("QR Image uploaded. Please enter the QRIS text manually if you have it", {
-          description: "We can't extract text from QR automatically yet"
-        });
+        // Save as default if we're in settings
+        if (settingsOpen) {
+          setDefaultQrImage(event.target.result as string);
+          localStorage.setItem('defaultQrImage', event.target.result as string);
+          toast.success("Default QR code has been saved");
+        } else {
+          toast("QR Image uploaded successfully", {
+            description: "You can now proceed with the payment"
+          });
+        }
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleDefaultQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUploadError(null);
+    const file = e.target.files?.[0];
+    
+    if (!file) {
+      return;
+    }
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size should be less than 10MB');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setDefaultQrImage(event.target.result as string);
+        localStorage.setItem('defaultQrImage', event.target.result as string);
+        toast.success("Default QR code has been saved");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const saveWhatsAppSettings = () => {
+    localStorage.setItem('adminWhatsApp', adminWhatsApp);
+    localStorage.setItem('whatsAppMessage', whatsAppMessage);
+    toast.success("WhatsApp settings saved successfully");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,7 +195,7 @@ const Index = () => {
   };
 
   const processUploadedQris = async () => {
-    if (!qrisText && !uploadedQrImage) {
+    if (!qrisText && !uploadedQrImage && !defaultQrImage) {
       uiToast({
         title: "Missing information",
         description: "Please upload a QR image or enter QRIS text",
@@ -184,9 +248,20 @@ const Index = () => {
     }
   };
 
+  // Load default QR and WhatsApp settings on component mount
+  useState(() => {
+    const savedQr = localStorage.getItem('defaultQrImage');
+    const savedWhatsApp = localStorage.getItem('adminWhatsApp');
+    const savedMessage = localStorage.getItem('whatsAppMessage');
+    
+    if (savedQr) setDefaultQrImage(savedQr);
+    if (savedWhatsApp) setAdminWhatsApp(savedWhatsApp);
+    if (savedMessage) setWhatsAppMessage(savedMessage);
+  });
+
   return (
     <Layout>
-      <div className="max-w-md mx-auto py-6">
+      <div className="max-w-md mx-auto py-6 px-4">
         <Tabs defaultValue="create" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="create">Create New Payment</TabsTrigger>
@@ -278,10 +353,10 @@ const Index = () => {
                     className={`border-2 border-dashed ${uploadError ? 'border-red-300' : 'border-gray-300'} rounded-lg p-6 text-center relative overflow-hidden`}
                     style={{minHeight: '150px'}}
                   >
-                    {uploadedQrImage ? (
+                    {uploadedQrImage || defaultQrImage ? (
                       <div className="flex flex-col items-center">
                         <img 
-                          src={uploadedQrImage} 
+                          src={uploadedQrImage || defaultQrImage} 
                           alt="Uploaded QR" 
                           className="max-h-40 object-contain mb-2" 
                         />
@@ -373,6 +448,141 @@ const Index = () => {
             </Card>
           </TabsContent>
         </Tabs>
+        
+        {/* Settings Dialog */}
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="fixed bottom-4 right-4 rounded-full shadow-lg z-50"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <SettingsIcon className="h-5 w-5" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Settings</DialogTitle>
+              <DialogDescription>
+                Configure your payment and WhatsApp settings
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6 py-4">
+              <div>
+                <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <QrCode className="h-4 w-4" /> Default QR Code
+                </h3>
+                <div className="border rounded-md p-4">
+                  <div className="flex flex-col items-center justify-center mb-4">
+                    {defaultQrImage ? (
+                      <div className="relative">
+                        <img 
+                          src={defaultQrImage} 
+                          alt="Default QR" 
+                          className="w-40 h-40 object-contain" 
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setDefaultQrImage(null);
+                            localStorage.removeItem('defaultQrImage');
+                          }}
+                          className="mt-2 mx-auto block"
+                        >
+                          Remove Default QR
+                        </Button>
+                      </div>
+                    ) : (
+                      <div 
+                        className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center relative overflow-hidden w-full"
+                        style={{minHeight: '150px'}}
+                      >
+                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                        <div className="mt-2">
+                          <Label htmlFor="default-qr-file" className="cursor-pointer text-blue-600 hover:text-blue-800 block">
+                            Upload Default QR
+                          </Label>
+                          <p className="text-xs text-gray-500 mt-1">
+                            This will be used as default for new payments
+                          </p>
+                        </div>
+                        
+                        <Input
+                          id="default-qr-file"
+                          type="file"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          accept="image/*"
+                          onChange={handleDefaultQrUpload}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium mb-2">Admin WhatsApp Settings</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="admin-whatsapp">WhatsApp Number</Label>
+                    <Input 
+                      id="admin-whatsapp" 
+                      value={adminWhatsApp}
+                      onChange={(e) => setAdminWhatsApp(e.target.value)}
+                      placeholder="e.g. 628123456789"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Include country code without + (e.g., 628123456789)
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp-message">Default Message</Label>
+                    <Textarea
+                      id="whatsapp-message"
+                      value={whatsAppMessage}
+                      onChange={(e) => setWhatsAppMessage(e.target.value)}
+                      placeholder="Default message for payment confirmation"
+                      className="min-h-24"
+                    />
+                    <p className="text-xs text-gray-500">
+                      This message will be sent when a customer confirms payment
+                    </p>
+                  </div>
+                  
+                  <Button 
+                    onClick={saveWhatsAppSettings}
+                    className="w-full"
+                  >
+                    Save WhatsApp Settings
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter className="sm:justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setSettingsOpen(false)}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Navigation buttons at bottom */}
+        <div className="fixed bottom-4 left-4 space-x-2 z-50">
+          <Link to="/history">
+            <Button variant="outline" size="icon" className="rounded-full shadow-lg">
+              <History className="h-5 w-5" />
+            </Button>
+          </Link>
+        </div>
       </div>
     </Layout>
   );

@@ -140,6 +140,18 @@ const updatePaymentStatus = (id: string, status: 'pending' | 'paid'): Payment | 
   return undefined;
 };
 
+const deletePayment = (id: string): boolean => {
+  const payments = getPayments();
+  const filteredPayments = payments.filter((payment) => payment.id !== id);
+  
+  if (filteredPayments.length < payments.length) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredPayments));
+    return true;
+  }
+  
+  return false;
+};
+
 const searchPayments = (query: string): Payment[] => {
   const payments = getPayments();
   const lowerQuery = query.toLowerCase();
@@ -158,5 +170,6 @@ export const PaymentService = {
   getPaymentById,
   createPayment,
   updatePaymentStatus,
+  deletePayment,
   searchPayments
 };

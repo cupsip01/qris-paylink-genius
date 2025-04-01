@@ -25,3 +25,19 @@ export interface Payment {
   fee?: string; // Fee amount
   qrisId?: string; // QRIS ID type (01 or A01)
 }
+
+export interface UserProfile {
+  id: string;
+  username?: string;
+  avatar_url?: string;
+  full_name?: string;
+  created_at: string;
+  updated_at: string;
+  preferences?: {
+    adminWhatsApp?: string;
+    whatsAppMessage?: string;
+    defaultQrImage?: string;
+    theme?: string;
+    language?: string;
+  };
+}

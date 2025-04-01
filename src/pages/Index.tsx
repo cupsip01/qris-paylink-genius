@@ -11,8 +11,6 @@ import { toast } from "sonner";
 const Index = () => {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [email, setEmail] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -36,8 +34,6 @@ const Index = () => {
       const payment = await createPayment({
         customer_name: name,
         amount: Number(amount),
-        email: email || undefined,
-        whatsapp: whatsapp || undefined,
       });
       
       toast.success("Payment created successfully!");
@@ -87,30 +83,6 @@ const Index = () => {
               onChange={(e) => setAmount(e.target.value)}
               required
             />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="email">Customer Email (Optional)</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="customer@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp">WhatsApp Number (Optional)</Label>
-            <Input
-              id="whatsapp"
-              placeholder="628123456789"
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Include country code without + (e.g., 628123456789)
-            </p>
           </div>
           
           <Button

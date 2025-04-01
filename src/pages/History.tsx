@@ -29,46 +29,11 @@ const History = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    // Mock data for demonstration
-    const mockPayments: Payment[] = [
-      {
-        id: "1",
-        amount: 150000,
-        buyerName: "John Doe",
-        bankSender: "BCA",
-        createdAt: new Date().toISOString(),
-        status: 'paid',
-        note: "Monthly subscription"
-      },
-      {
-        id: "2",
-        amount: 75000,
-        buyerName: "Jane Smith",
-        bankSender: "Mandiri",
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-        status: 'pending',
-        note: "Product purchase"
-      },
-      {
-        id: "3",
-        amount: 250000,
-        buyerName: "Robert Brown",
-        bankSender: "BNI",
-        createdAt: new Date(Date.now() - 172800000).toISOString(),
-        status: 'paid',
-        note: "Service fee"
-      }
-    ];
-
+    // Fetch payments from service
     if (searchQuery.trim()) {
-      const results = mockPayments.filter(payment => 
-        payment.buyerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        payment.note?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        payment.amount.toString().includes(searchQuery)
-      );
-      setPayments(results);
+      setPayments(PaymentService.searchPayments(searchQuery));
     } else {
-      setPayments(mockPayments);
+      setPayments(PaymentService.getPayments());
     }
   }, [searchQuery]);
 

@@ -18,10 +18,10 @@ export const createPayment = async (data: {
       .insert([
         {
           id: paymentId,
-          customer_name: data.customer_name,
+          buyer_name: data.customer_name, // Changed to match DB column
           amount: data.amount,
-          email: data.email,
-          whatsapp: data.whatsapp,
+          bank_sender: null,
+          note: null,
           dynamic_qris: dynamicQrCode,
           status: 'pending',
         },

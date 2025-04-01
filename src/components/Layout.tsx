@@ -36,7 +36,7 @@ const Layout = ({ children }: LayoutProps) => {
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="bg-primary text-white p-4">
+      <header className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4">
         <div className="container mx-auto flex justify-between items-center">
           <Link to="/" className="text-2xl font-bold flex items-center gap-2">
             <img 
@@ -55,7 +55,7 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
               <Button 
                 variant="ghost" 
-                className="text-white hover:bg-primary/80" 
+                className="text-white hover:bg-white/20" 
                 onClick={handleSignOut}
               >
                 <LogOut size={18} className="mr-2" />
@@ -76,7 +76,7 @@ const Layout = ({ children }: LayoutProps) => {
             <Link 
               to="/" 
               className={`flex-1 py-4 flex flex-col items-center ${
-                location.pathname === "/" ? "text-primary" : "text-gray-500"
+                location.pathname === "/" ? "text-purple-600" : "text-gray-500"
               }`}
             >
               <Home size={24} />
@@ -85,7 +85,7 @@ const Layout = ({ children }: LayoutProps) => {
             <Link 
               to="/history" 
               className={`flex-1 py-4 flex flex-col items-center ${
-                location.pathname === "/history" ? "text-primary" : "text-gray-500"
+                location.pathname === "/history" ? "text-purple-600" : "text-gray-500"
               }`}
             >
               <ClipboardList size={24} />
@@ -94,7 +94,7 @@ const Layout = ({ children }: LayoutProps) => {
             <Link 
               to="/settings" 
               className={`flex-1 py-4 flex flex-col items-center ${
-                location.pathname === "/settings" ? "text-primary" : "text-gray-500"
+                location.pathname === "/settings" ? "text-purple-600" : "text-gray-500"
               }`}
             >
               <Settings size={24} />

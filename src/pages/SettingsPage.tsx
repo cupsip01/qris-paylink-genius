@@ -29,8 +29,13 @@ import {
   RefreshCw, 
   Save, 
   LogOut, 
-  ChevronRight 
+  ChevronRight,
+  Shield,
+  Bell,
+  CreditCard,
+  Languages
 } from "lucide-react";
+import { Profile } from "@/types/profiles";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -48,7 +53,7 @@ const SettingsPage = () => {
   const [syncInterval, setSyncInterval] = useState("30");
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -135,50 +140,80 @@ const SettingsPage = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="md:col-span-1">
-          <Tabs 
-            orientation="vertical" 
-            value={activeTab} 
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="flex flex-col h-auto w-full bg-muted/50 rounded-md">
-              <TabsTrigger 
-                value="appearance" 
-                className="w-full justify-start gap-2 px-3"
-              >
-                <Sun className="h-4 w-4" />
-                <span>Appearance</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="qrcode" 
-                className="w-full justify-start gap-2 px-3"
-              >
-                <QrCode className="h-4 w-4" />
-                <span>QR Code</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="whatsapp" 
-                className="w-full justify-start gap-2 px-3"
-              >
-                <Phone className="h-4 w-4" />
-                <span>WhatsApp</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="account" 
-                className="w-full justify-start gap-2 px-3"
-              >
-                <User className="h-4 w-4" />
-                <span>Account</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="sync" 
-                className="w-full justify-start gap-2 px-3"
-              >
-                <RefreshCw className="h-4 w-4" />
-                <span>Sync</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="bg-card rounded-lg border shadow">
+            <Tabs 
+              orientation="vertical" 
+              value={activeTab} 
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
+              <TabsList className="flex flex-col h-auto w-full bg-transparent rounded-md p-1 space-y-1">
+                <TabsTrigger 
+                  value="appearance" 
+                  className="w-full justify-start gap-3 px-3 h-12"
+                >
+                  <Sun className="h-5 w-5" />
+                  <span>Appearance</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="qrcode" 
+                  className="w-full justify-start gap-3 px-3 h-12"
+                >
+                  <QrCode className="h-5 w-5" />
+                  <span>QR Code</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="whatsapp" 
+                  className="w-full justify-start gap-3 px-3 h-12"
+                >
+                  <Phone className="h-5 w-5" />
+                  <span>WhatsApp</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="account" 
+                  className="w-full justify-start gap-3 px-3 h-12"
+                >
+                  <User className="h-5 w-5" />
+                  <span>Account</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="security" 
+                  className="w-full justify-start gap-3 px-3 h-12"
+                >
+                  <Shield className="h-5 w-5" />
+                  <span>Security</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="notifications" 
+                  className="w-full justify-start gap-3 px-3 h-12"
+                >
+                  <Bell className="h-5 w-5" />
+                  <span>Notifications</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="payments" 
+                  className="w-full justify-start gap-3 px-3 h-12"
+                >
+                  <CreditCard className="h-5 w-5" />
+                  <span>Payments</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="language" 
+                  className="w-full justify-start gap-3 px-3 h-12"
+                >
+                  <Languages className="h-5 w-5" />
+                  <span>Language</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="sync" 
+                  className="w-full justify-start gap-3 px-3 h-12"
+                >
+                  <RefreshCw className="h-5 w-5" />
+                  <span>Sync</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
         
         <div className="md:col-span-3">
@@ -192,10 +227,10 @@ const SettingsPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-6 p-4 bg-secondary/50 rounded-lg">
                     <div>
-                      <Label htmlFor="dark-mode">Dark Mode</Label>
-                      <p className="text-sm text-muted-foreground">
+                      <Label htmlFor="dark-mode" className="text-lg font-medium">Dark Mode</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
                         Toggle between light and dark theme
                       </p>
                     </div>
@@ -204,6 +239,22 @@ const SettingsPage = () => {
                       checked={darkMode} 
                       onCheckedChange={setDarkMode} 
                     />
+                  </div>
+                  
+                  <div className="p-4 bg-secondary/50 rounded-lg flex justify-between items-center mb-4">
+                    <div>
+                      <h3 className="text-lg font-medium">Theme Color</h3>
+                      <p className="text-sm text-muted-foreground">Customize the app's primary color</p>
+                    </div>
+                    <ChevronRight className="text-muted-foreground" />
+                  </div>
+                  
+                  <div className="p-4 bg-secondary/50 rounded-lg flex justify-between items-center">
+                    <div>
+                      <h3 className="text-lg font-medium">Font Size</h3>
+                      <p className="text-sm text-muted-foreground">Change the text size throughout the app</p>
+                    </div>
+                    <ChevronRight className="text-muted-foreground" />
                   </div>
                 </CardContent>
               </Card>
@@ -218,10 +269,10 @@ const SettingsPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg">
                     <div>
-                      <Label htmlFor="show-logo">Show Logo</Label>
-                      <p className="text-sm text-muted-foreground">
+                      <Label htmlFor="show-logo" className="text-lg font-medium">Show Logo</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
                         Display your logo in the center of QR codes
                       </p>
                     </div>
@@ -234,9 +285,9 @@ const SettingsPage = () => {
                     />
                   </div>
                   
-                  <div>
-                    <Label htmlFor="logo-size">Logo Size</Label>
-                    <p className="text-sm text-muted-foreground mb-2">
+                  <div className="p-4 bg-secondary/50 rounded-lg">
+                    <Label htmlFor="logo-size" className="text-lg font-medium">Logo Size</Label>
+                    <p className="text-sm text-muted-foreground mb-3 mt-1">
                       Choose the size of the logo in the QR code
                     </p>
                     <div className="flex gap-2">
@@ -256,9 +307,9 @@ const SettingsPage = () => {
                     </div>
                   </div>
                   
-                  <div>
-                    <Label htmlFor="border-style">Border Style</Label>
-                    <p className="text-sm text-muted-foreground mb-2">
+                  <div className="p-4 bg-secondary/50 rounded-lg">
+                    <Label htmlFor="border-style" className="text-lg font-medium">Border Style</Label>
+                    <p className="text-sm text-muted-foreground mb-3 mt-1">
                       Choose the border style for your QR codes
                     </p>
                     <div className="flex gap-2">
@@ -290,10 +341,10 @@ const SettingsPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg">
                     <div>
-                      <Label htmlFor="whatsapp-enabled">Enable Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
+                      <Label htmlFor="whatsapp-enabled" className="text-lg font-medium">Enable Notifications</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
                         Receive payment notifications via WhatsApp
                       </p>
                     </div>
@@ -304,9 +355,9 @@ const SettingsPage = () => {
                     />
                   </div>
                   
-                  <div>
-                    <Label htmlFor="whatsapp-number">WhatsApp Number</Label>
-                    <p className="text-sm text-muted-foreground mb-2">
+                  <div className="p-4 bg-secondary/50 rounded-lg">
+                    <Label htmlFor="whatsapp-number" className="text-lg font-medium">WhatsApp Number</Label>
+                    <p className="text-sm text-muted-foreground mb-2 mt-1">
                       Enter your WhatsApp number with country code
                     </p>
                     <Input
@@ -317,7 +368,7 @@ const SettingsPage = () => {
                       className="max-w-sm"
                       disabled={!whatsappEnabled}
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Format: country code + number (e.g., 628123456789)
                     </p>
                   </div>
@@ -334,26 +385,26 @@ const SettingsPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div>
-                    <Label htmlFor="username">Full Name</Label>
+                  <div className="p-4 bg-secondary/50 rounded-lg">
+                    <Label htmlFor="username" className="text-lg font-medium">Full Name</Label>
                     <Input
                       id="username"
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
-                      className="max-w-sm"
+                      className="max-w-sm mt-2"
                     />
                   </div>
                   
-                  <div>
-                    <Label htmlFor="email">Email</Label>
+                  <div className="p-4 bg-secondary/50 rounded-lg">
+                    <Label htmlFor="email" className="text-lg font-medium">Email</Label>
                     <Input
                       id="email"
                       type="email"
                       value={email}
                       disabled
-                      className="max-w-sm"
+                      className="max-w-sm mt-2"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Contact support to change your email address
                     </p>
                   </div>
@@ -361,7 +412,7 @@ const SettingsPage = () => {
                   <Button 
                     variant="destructive" 
                     onClick={handleSignOut}
-                    className="mt-4"
+                    className="mt-4 w-full sm:w-auto"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign Out
@@ -369,6 +420,27 @@ const SettingsPage = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+            
+            {/* Placeholder content for the added menu items */}
+            {["security", "notifications", "payments", "language"].map((tab) => (
+              <TabsContent key={tab} value={tab} className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{tab.charAt(0).toUpperCase() + tab.slice(1)}</CardTitle>
+                    <CardDescription>
+                      Manage your {tab} settings
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="p-4 bg-secondary/50 rounded-lg">
+                      <p className="text-muted-foreground">
+                        {tab.charAt(0).toUpperCase() + tab.slice(1)} settings will be available soon.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            ))}
             
             <TabsContent value="sync" className="mt-0">
               <Card>
@@ -379,12 +451,12 @@ const SettingsPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div>
-                    <Label htmlFor="sync-interval">Sync Interval (minutes)</Label>
-                    <p className="text-sm text-muted-foreground mb-2">
+                  <div className="p-4 bg-secondary/50 rounded-lg">
+                    <Label htmlFor="sync-interval" className="text-lg font-medium">Sync Interval (minutes)</Label>
+                    <p className="text-sm text-muted-foreground mb-3 mt-1">
                       Choose how frequently your data syncs with the server
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {["5", "15", "30", "60"].map((interval) => (
                         <Button
                           key={interval}
@@ -406,7 +478,7 @@ const SettingsPage = () => {
             <Button 
               onClick={handleSaveSettings} 
               disabled={loading}
-              className="px-8"
+              className="px-8 button-gradient border-none"
             >
               <Save className="h-4 w-4 mr-2" />
               {loading ? "Saving..." : "Save Settings"}

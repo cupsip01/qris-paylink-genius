@@ -6,5 +6,16 @@ export interface Profile {
   avatar_url: string | null;
   username: string | null;
   full_name: string | null;
-  preferences?: Record<string, any>;
+  preferences?: {
+    darkMode?: boolean;
+    whatsappNumber?: string;
+    whatsappEnabled?: boolean;
+    qrCodeSettings?: {
+      showLogo?: boolean;
+      logoSize?: string;
+      borderStyle?: string;
+    };
+    syncInterval?: string;
+    [key: string]: any;
+  };
 }

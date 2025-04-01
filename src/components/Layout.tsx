@@ -1,7 +1,7 @@
 
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, ClipboardList, LogOut, User } from "lucide-react";
+import { Home, ClipboardList, LogOut, User, Settings } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +36,7 @@ const Layout = ({ children }: LayoutProps) => {
   
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-qris-red text-white p-4">
+      <header className="bg-primary text-white p-4">
         <div className="container mx-auto flex justify-between items-center">
           <Link to="/" className="text-2xl font-bold flex items-center gap-2">
             <img 
@@ -55,7 +55,7 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
               <Button 
                 variant="ghost" 
-                className="text-white hover:bg-red-700" 
+                className="text-white hover:bg-primary/80" 
                 onClick={handleSignOut}
               >
                 <LogOut size={18} className="mr-2" />
@@ -76,7 +76,7 @@ const Layout = ({ children }: LayoutProps) => {
             <Link 
               to="/" 
               className={`flex-1 py-4 flex flex-col items-center ${
-                location.pathname === "/" ? "text-qris-red" : "text-gray-500"
+                location.pathname === "/" ? "text-primary" : "text-gray-500"
               }`}
             >
               <Home size={24} />
@@ -85,11 +85,20 @@ const Layout = ({ children }: LayoutProps) => {
             <Link 
               to="/history" 
               className={`flex-1 py-4 flex flex-col items-center ${
-                location.pathname === "/history" ? "text-qris-red" : "text-gray-500"
+                location.pathname === "/history" ? "text-primary" : "text-gray-500"
               }`}
             >
               <ClipboardList size={24} />
               <span className="text-xs mt-1">History</span>
+            </Link>
+            <Link 
+              to="/settings" 
+              className={`flex-1 py-4 flex flex-col items-center ${
+                location.pathname === "/settings" ? "text-primary" : "text-gray-500"
+              }`}
+            >
+              <Settings size={24} />
+              <span className="text-xs mt-1">Settings</span>
             </Link>
           </div>
         </div>

@@ -7,8 +7,12 @@ export interface Profile {
   username: string | null;
   full_name: string | null;
   preferences?: {
-    darkMode?: boolean;
+    adminWhatsApp?: string;
     whatsappNumber?: string;
+    whatsAppMessage?: string;
+    defaultQrImage?: string;
+    theme?: string;
+    language?: string;
     whatsappEnabled?: boolean;
     qrCodeSettings?: {
       showLogo?: boolean;

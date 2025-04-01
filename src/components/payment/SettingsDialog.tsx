@@ -34,7 +34,7 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
     if (savedQr) setDefaultQrImage(savedQr);
     if (savedWhatsApp) setAdminWhatsApp(savedWhatsApp);
     if (savedMessage) setWhatsAppMessage(savedMessage);
-  }, []);
+  }, [open]);
 
   const handleDefaultQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -98,6 +98,7 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                       onClick={() => {
                         setDefaultQrImage(null);
                         localStorage.removeItem('defaultQrImage');
+                        toast.success("Default QR code removed");
                       }}
                       className="mt-2 mx-auto block"
                     >

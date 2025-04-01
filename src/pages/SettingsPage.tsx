@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { UserProfile } from "@/types/payment";
+import { Profile } from "@/types/profiles";
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
@@ -45,7 +45,7 @@ const SettingsPage = () => {
   const [loading, setLoading] = useState(false);
   
   // User profile and preferences
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [adminWhatsApp, setAdminWhatsApp] = useState("628123456789");
   const [whatsAppMessage, setWhatsAppMessage] = useState("Halo admin, saya sudah transfer untuk pesanan");
   const [defaultQrImage, setDefaultQrImage] = useState("");
@@ -59,11 +59,13 @@ const SettingsPage = () => {
     const savedMessage = localStorage.getItem('whatsAppMessage');
     const savedTheme = localStorage.getItem('theme');
     const savedLanguage = localStorage.getItem('language');
+    const savedQrImage = localStorage.getItem('defaultQrImage');
     
     if (savedWhatsApp) setAdminWhatsApp(savedWhatsApp);
     if (savedMessage) setWhatsAppMessage(savedMessage);
     if (savedTheme) setTheme(savedTheme);
     if (savedLanguage) setLanguage(savedLanguage);
+    if (savedQrImage) setDefaultQrImage(savedQrImage);
     
     // If user is logged in, fetch profile from Supabase
     if (user) {
@@ -85,7 +87,7 @@ const SettingsPage = () => {
       }
       
       if (data) {
-        setProfile(data);
+        setProfile(data as Profile);
         // If there are preferences in the profile, use those
         if (data.preferences) {
           data.preferences.adminWhatsApp && setAdminWhatsApp(data.preferences.adminWhatsApp);
@@ -109,6 +111,9 @@ const SettingsPage = () => {
       localStorage.setItem('whatsAppMessage', whatsAppMessage);
       localStorage.setItem('theme', theme);
       localStorage.setItem('language', language);
+      if (defaultQrImage) {
+        localStorage.setItem('defaultQrImage', defaultQrImage);
+      }
       
       // If user is logged in, save to Supabase
       if (user) {
@@ -123,8 +128,8 @@ const SettingsPage = () => {
         const { error } = await supabase
           .from('profiles')
           .update({ 
-            preferences: preferences
-          })
+            preferences
+          } as any)
           .eq('id', user.id);
         
         if (error) throw error;
@@ -177,6 +182,7 @@ const SettingsPage = () => {
       reader.onloadend = () => {
         const base64String = reader.result as string;
         setDefaultQrImage(base64String);
+        localStorage.setItem('defaultQrImage', base64String);
         setUploadingQr(false);
         toast({
           title: "QR Image uploaded",

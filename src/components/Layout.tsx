@@ -35,7 +35,7 @@ const Layout = ({ children }: LayoutProps) => {
   };
   
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <header className="bg-primary text-white p-4">
         <div className="container mx-auto flex justify-between items-center">
           <Link to="/" className="text-2xl font-bold flex items-center gap-2">
@@ -102,7 +102,7 @@ const Layout = ({ children }: LayoutProps) => {
             </Link>
           </div>
         </div>
-        <div className="py-16"></div>
+        <div className="py-16"></div> {/* Space at the bottom to account for the fixed navbar */}
       </footer>
     </div>
   );

@@ -1,6 +1,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from "@/integrations/supabase/client";
+import { Payment } from "@/types/payment";
 
 export const createPayment = async (data: {
   customer_name: string;
@@ -82,26 +83,74 @@ export const updatePaymentStatus = async (id: string, status: string) => {
   }
 };
 
+// Mock data for UI development
+const mockPayments: Payment[] = [
+  {
+    id: "1",
+    amount: 150000,
+    buyerName: "John Doe",
+    bankSender: "BCA",
+    createdAt: new Date().toISOString(),
+    status: 'paid',
+    note: "Monthly subscription",
+    merchantName: "My Store",
+    qrisNmid: "ID10023456789",
+    qrisRequestDate: new Date().toISOString()
+  },
+  {
+    id: "2",
+    amount: 75000,
+    buyerName: "Jane Smith",
+    bankSender: "Mandiri",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    status: 'pending',
+    note: "Product purchase",
+    merchantName: "My Store",
+    qrisNmid: "ID10023456789",
+    qrisRequestDate: new Date(Date.now() - 86400000).toISOString()
+  },
+  {
+    id: "3",
+    amount: 250000,
+    buyerName: "Robert Brown",
+    bankSender: "BNI",
+    createdAt: new Date(Date.now() - 172800000).toISOString(),
+    status: 'paid',
+    note: "Service fee",
+    merchantName: "My Store",
+    qrisNmid: "ID10023456789",
+    qrisRequestDate: new Date(Date.now() - 172800000).toISOString()
+  }
+];
+
 // Create a PaymentService object for easier imports in other files
 export const PaymentService = {
   createPayment,
   getPayment,
   updatePaymentStatus,
   // Add mock functions for History page
-  getPayments: () => {
-    return [];
+  getPayments: (): Payment[] => {
+    return mockPayments;
   },
-  searchPayments: (query: string) => {
-    return [];
+  searchPayments: (query: string): Payment[] => {
+    return mockPayments.filter(payment => 
+      payment.buyerName?.toLowerCase().includes(query.toLowerCase()) ||
+      payment.note?.toLowerCase().includes(query.toLowerCase()) ||
+      payment.bankSender?.toLowerCase().includes(query.toLowerCase()) ||
+      payment.amount.toString().includes(query)
+    );
   },
   // Add getPaymentById for PaymentDetails.tsx
-  getPaymentById: (id: string) => {
+  getPaymentById: (id: string): Payment => {
+    const payment = mockPayments.find(p => p.id === id);
+    if (payment) return payment;
+    
     return {
       id,
       amount: 100000,
       buyerName: "John Doe",
       createdAt: new Date().toISOString(),
-      status: 'pending' as const,
+      status: 'pending',
       qrImageUrl: "https://example.com/qr.png",
       merchantName: "Example Merchant",
       qrisNmid: "12345",

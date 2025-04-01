@@ -29,16 +29,46 @@ const History = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
+    // Mock data for demonstration
+    const mockPayments: Payment[] = [
+      {
+        id: "1",
+        amount: 150000,
+        buyerName: "John Doe",
+        bankSender: "BCA",
+        createdAt: new Date().toISOString(),
+        status: 'paid',
+        note: "Monthly subscription"
+      },
+      {
+        id: "2",
+        amount: 75000,
+        buyerName: "Jane Smith",
+        bankSender: "Mandiri",
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        status: 'pending',
+        note: "Product purchase"
+      },
+      {
+        id: "3",
+        amount: 250000,
+        buyerName: "Robert Brown",
+        bankSender: "BNI",
+        createdAt: new Date(Date.now() - 172800000).toISOString(),
+        status: 'paid',
+        note: "Service fee"
+      }
+    ];
+
     if (searchQuery.trim()) {
-      const results = PaymentService.searchPayments(searchQuery);
+      const results = mockPayments.filter(payment => 
+        payment.buyerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        payment.note?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        payment.amount.toString().includes(searchQuery)
+      );
       setPayments(results);
     } else {
-      const allPayments = PaymentService.getPayments();
-      // Sort payments by date (newest first)
-      allPayments.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      setPayments(allPayments);
+      setPayments(mockPayments);
     }
   }, [searchQuery]);
 
@@ -100,6 +130,7 @@ const History = () => {
                             {payment.buyerName || payment.note || "No details"}
                           </p>
                           <p className="text-xs text-gray-400">
+                            {payment.bankSender && <span className="font-medium">{payment.bankSender} • </span>}
                             {format(new Date(payment.createdAt), "MMM d, yyyy h:mm a")}
                           </p>
                         </div>

@@ -4,10 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Payment } from "@/types/payment";
 
 export const createPayment = async (data: {
-  customer_name: string;
   amount: number;
-  email?: string;
-  whatsapp?: string;
+  buyer_name?: string;
+  bank_sender?: string;
+  note?: string;
 }) => {
   const paymentId = uuidv4();
   const dynamicQrCode = `https://example.com/payment/${paymentId}`; // Replace with your actual dynamic QR code generation logic
@@ -18,10 +18,10 @@ export const createPayment = async (data: {
       .insert([
         {
           id: paymentId,
-          buyer_name: data.customer_name, // Changed to match DB column
+          buyer_name: data.buyer_name,
           amount: data.amount,
-          bank_sender: null,
-          note: null,
+          bank_sender: data.bank_sender,
+          note: data.note,
           dynamic_qris: dynamicQrCode,
           status: 'pending',
         },

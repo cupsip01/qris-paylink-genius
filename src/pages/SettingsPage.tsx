@@ -129,7 +129,7 @@ const SettingsPage = () => {
           .from('profiles')
           .update({ 
             preferences
-          } as any)
+          })
           .eq('id', user.id);
         
         if (error) throw error;

@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from "@/integrations/supabase/client";
 
@@ -78,5 +79,19 @@ export const updatePaymentStatus = async (id: string, status: string) => {
   } catch (error: any) {
     console.error("Error updating payment status:", error);
     throw new Error(error.message || "Failed to update payment status");
+  }
+};
+
+// Create a PaymentService object for easier imports in other files
+export const PaymentService = {
+  createPayment,
+  getPayment,
+  updatePaymentStatus,
+  // Add mock functions for History page
+  getPayments: () => {
+    return [];
+  },
+  searchPayments: (query: string) => {
+    return [];
   }
 };

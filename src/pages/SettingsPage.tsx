@@ -1,14 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthProvider";
-import { useTheme } from "@/context/ThemeProvider";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Tabs, 
   TabsContent, 
@@ -16,447 +9,413 @@ import {
   TabsTrigger 
 } from "@/components/ui/tabs";
 import { 
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { 
-  Upload, 
-  QrCode, 
-  Phone, 
-  Settings, 
-  LogOut, 
   Moon, 
   Sun, 
-  User,
-  Database,
-  Shield,
-  Globe
+  QrCode, 
+  Phone, 
+  User, 
+  RefreshCw, 
+  Save, 
+  LogOut, 
+  ChevronRight 
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { motion } from "framer-motion";
-import { Profile } from "@/types/profiles";
 
-export default function SettingsPage() {
-  const { user, signOut, loading } = useAuth();
+const SettingsPage = () => {
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
-  
-  const [adminWhatsApp, setAdminWhatsApp] = useState("628123456789");
-  const [whatsAppMessage, setWhatsAppMessage] = useState("Halo admin, saya sudah transfer untuk pesanan");
-  const [defaultQrImage, setDefaultQrImage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("appearance");
+  const [darkMode, setDarkMode] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [email, setEmail] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [qrCodeSettings, setQrCodeSettings] = useState({
+    showLogo: true,
+    logoSize: "medium",
+    borderStyle: "rounded",
+  });
+  const [syncInterval, setSyncInterval] = useState("30");
+  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-
-    // Load settings from localStorage
-    const savedQr = localStorage.getItem('defaultQrImage');
-    const savedWhatsApp = localStorage.getItem('adminWhatsApp');
-    const savedMessage = localStorage.getItem('whatsAppMessage');
-    
-    if (savedQr) setDefaultQrImage(savedQr);
-    if (savedWhatsApp) setAdminWhatsApp(savedWhatsApp);
-    if (savedMessage) setWhatsAppMessage(savedMessage);
-  }, [user, loading, navigate]);
-
-  const handleDefaultQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    
-    if (!file) return;
-    
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file');
-      return;
-    }
-    
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size should be less than 10MB');
-      return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setDefaultQrImage(event.target.result as string);
-        localStorage.setItem('defaultQrImage', event.target.result as string);
-        toast.success("Default QR code has been saved");
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data && data.user) {
+        setUser(data.user);
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", data.user.id)
+          .single();
+        
+        if (profileData) {
+          setProfile(profileData);
+          // Load preferences from profile if they exist
+          if (profileData.preferences) {
+            setDarkMode(profileData.preferences.darkMode || false);
+            setWhatsappNumber(profileData.preferences.whatsappNumber || "");
+            setWhatsappEnabled(profileData.preferences.whatsappEnabled || false);
+            setQrCodeSettings(profileData.preferences.qrCodeSettings || {
+              showLogo: true,
+              logoSize: "medium",
+              borderStyle: "rounded",
+            });
+            setSyncInterval(profileData.preferences.syncInterval || "30");
+          }
+          setUserName(profileData.full_name || "");
+          setEmail(data.user.email || "");
+        }
       }
     };
-    reader.readAsDataURL(file);
-  };
+    
+    getUser();
+  }, []);
 
-  const saveWhatsAppSettings = () => {
-    localStorage.setItem('adminWhatsApp', adminWhatsApp);
-    localStorage.setItem('whatsAppMessage', whatsAppMessage);
-    toast.success("WhatsApp settings saved successfully");
-  };
-
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
-  };
-
-  const saveSettingsToSupabase = async () => {
+  const handleSaveSettings = async () => {
+    if (!user) {
+      toast.error("You must be logged in to save settings");
+      return;
+    }
+    
+    setLoading(true);
+    
     try {
-      if (!user) return;
-      
       const { error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({
+          full_name: userName,
           preferences: {
-            whatsAppNumber: adminWhatsApp,
-            whatsAppMessage: whatsAppMessage,
-            theme: theme
-          }
+            darkMode,
+            whatsappNumber,
+            whatsappEnabled,
+            qrCodeSettings,
+            syncInterval,
+          },
         })
-        .eq('id', user.id);
-        
+        .eq("id", user.id);
+      
       if (error) throw error;
       
-      toast.success("Settings saved to your profile");
+      toast.success("Settings saved successfully");
     } catch (error: any) {
-      toast.error(`Error saving settings: ${error.message}`);
+      console.error("Error saving settings:", error);
+      toast.error("Failed to save settings");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadSettingsFromSupabase = async () => {
+  const handleSignOut = async () => {
     try {
-      if (!user) return;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('preferences')
-        .eq('id', user.id)
-        .single();
-        
-      if (error) throw error;
-      
-      if (data?.preferences) {
-        const { whatsAppNumber, whatsAppMessage, theme: savedTheme } = data.preferences as {
-          whatsAppNumber?: string;
-          whatsAppMessage?: string;
-          theme?: 'light' | 'dark';
-        };
-        
-        if (whatsAppNumber) setAdminWhatsApp(whatsAppNumber);
-        if (whatsAppMessage) setWhatsAppMessage(whatsAppMessage);
-        if (savedTheme) setTheme(savedTheme);
-        
-        toast.success("Settings loaded from your profile");
-      }
-    } catch (error: any) {
-      toast.error(`Error loading settings: ${error.message}`);
+      await supabase.auth.signOut();
+      toast.success("Signed out successfully");
+      navigate("/auth");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out");
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-600"></div>
-      </div>
-    );
-  }
-
-  // Settings page UI
   return (
-    <div className="container mx-auto py-6 px-4 max-w-5xl">
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6"
-      >
-        <h1 className="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-          Settings
-        </h1>
-        <p className="text-center text-muted-foreground">
-          Customize your QRIS Payment experience
-        </p>
-      </motion.div>
-
-      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6">
-        {/* Settings Sidebar */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <Card className="sticky top-6">
-            <CardContent className="p-0">
-              <TabsList className="flex flex-col h-auto items-stretch p-0 bg-transparent">
-                <TabsTrigger 
-                  value="appearance" 
-                  className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-muted data-[state=active]:shadow-none rounded-none border-l-2 border-transparent data-[state=active]:border-l-violet-600"
-                  onClick={() => setActiveTab("appearance")}
-                >
-                  <Sun className="h-4 w-4" />
-                  <span>Appearance</span>
-                </TabsTrigger>
-                
-                <TabsTrigger 
-                  value="qrcode" 
-                  className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-muted data-[state=active]:shadow-none rounded-none border-l-2 border-transparent data-[state=active]:border-l-violet-600"
-                  onClick={() => setActiveTab("qrcode")}
-                >
-                  <QrCode className="h-4 w-4" />
-                  <span>QR Code</span>
-                </TabsTrigger>
-                
-                <TabsTrigger 
-                  value="whatsapp" 
-                  className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-muted data-[state=active]:shadow-none rounded-none border-l-2 border-transparent data-[state=active]:border-l-violet-600"
-                  onClick={() => setActiveTab("whatsapp")}
-                >
-                  <Phone className="h-4 w-4" />
-                  <span>WhatsApp</span>
-                </TabsTrigger>
-                
-                <TabsTrigger 
-                  value="account" 
-                  className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-muted data-[state=active]:shadow-none rounded-none border-l-2 border-transparent data-[state=active]:border-l-violet-600"
-                  onClick={() => setActiveTab("account")}
-                >
-                  <User className="h-4 w-4" />
-                  <span>Account</span>
-                </TabsTrigger>
-                
-                <TabsTrigger 
-                  value="sync" 
-                  className="flex items-center justify-start gap-2 px-4 py-3 data-[state=active]:bg-muted data-[state=active]:shadow-none rounded-none border-l-2 border-transparent data-[state=active]:border-l-violet-600"
-                  onClick={() => setActiveTab("sync")}
-                >
-                  <Database className="h-4 w-4" />
-                  <span>Sync</span>
-                </TabsTrigger>
-              </TabsList>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Settings Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Card className="border bg-card text-card-foreground shadow-sm">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsContent value="appearance" className="mt-0">
+    <div className="container mx-auto p-4 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="md:col-span-1">
+          <Tabs 
+            orientation="vertical" 
+            value={activeTab} 
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="flex flex-col h-auto w-full bg-muted/50 rounded-md">
+              <TabsTrigger 
+                value="appearance" 
+                className="w-full justify-start gap-2 px-3"
+              >
+                <Sun className="h-4 w-4" />
+                <span>Appearance</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="qrcode" 
+                className="w-full justify-start gap-2 px-3"
+              >
+                <QrCode className="h-4 w-4" />
+                <span>QR Code</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="whatsapp" 
+                className="w-full justify-start gap-2 px-3"
+              >
+                <Phone className="h-4 w-4" />
+                <span>WhatsApp</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="account" 
+                className="w-full justify-start gap-2 px-3"
+              >
+                <User className="h-4 w-4" />
+                <span>Account</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="sync" 
+                className="w-full justify-start gap-2 px-3"
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span>Sync</span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        
+        <div className="md:col-span-3">
+          <Tabs value={activeTab} className="w-full">
+            <TabsContent value="appearance" className="mt-0">
+              <Card>
                 <CardHeader>
                   <CardTitle>Appearance</CardTitle>
                   <CardDescription>
-                    Customize how the application looks
+                    Customize how the app looks and feels
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="dark-mode">Dark Mode</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Switch between light and dark mode
-                        </p>
-                      </div>
-                      <div className="flex items-center">
-                        <Sun className="mr-2 h-4 w-4 text-amber-500" />
-                        <Switch
-                          id="dark-mode"
-                          checked={theme === 'dark'}
-                          onCheckedChange={toggleTheme}
-                        />
-                        <Moon className="ml-2 h-4 w-4 text-indigo-500" />
-                      </div>
+                <CardContent>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <Label htmlFor="dark-mode">Dark Mode</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Toggle between light and dark theme
+                      </p>
                     </div>
+                    <Switch 
+                      id="dark-mode" 
+                      checked={darkMode} 
+                      onCheckedChange={setDarkMode} 
+                    />
                   </div>
                 </CardContent>
-              </TabsContent>
-
-              <TabsContent value="qrcode" className="mt-0">
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="qrcode" className="mt-0">
+              <Card>
                 <CardHeader>
-                  <CardTitle>Default QR Code</CardTitle>
+                  <CardTitle>QR Code Settings</CardTitle>
                   <CardDescription>
-                    Set up your default QR code for payments
+                    Customize the appearance of generated QR codes
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex flex-col items-center justify-center mb-4">
-                      {defaultQrImage ? (
-                        <div className="relative">
-                          <img 
-                            src={defaultQrImage} 
-                            alt="Default QR" 
-                            className="w-48 h-48 object-contain border rounded-lg shadow-md" 
-                          />
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setDefaultQrImage(null);
-                              localStorage.removeItem('defaultQrImage');
-                              toast.success("Default QR code removed");
-                            }}
-                            className="mt-2 mx-auto block"
-                          >
-                            Remove Default QR
-                          </Button>
-                        </div>
-                      ) : (
-                        <div 
-                          className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center relative overflow-hidden w-full flex flex-col items-center justify-center"
-                          style={{minHeight: '200px'}}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="show-logo">Show Logo</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Display your logo in the center of QR codes
+                      </p>
+                    </div>
+                    <Switch 
+                      id="show-logo" 
+                      checked={qrCodeSettings.showLogo} 
+                      onCheckedChange={(value) => 
+                        setQrCodeSettings({...qrCodeSettings, showLogo: value})
+                      } 
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="logo-size">Logo Size</Label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Choose the size of the logo in the QR code
+                    </p>
+                    <div className="flex gap-2">
+                      {["small", "medium", "large"].map((size) => (
+                        <Button
+                          key={size}
+                          type="button"
+                          variant={qrCodeSettings.logoSize === size ? "default" : "outline"}
+                          onClick={() => setQrCodeSettings({
+                            ...qrCodeSettings, 
+                            logoSize: size
+                          })}
                         >
-                          <Upload className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
-                          <div className="mt-4">
-                            <Label htmlFor="default-qr-file" className="cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 block font-medium">
-                              Upload Default QR
-                            </Label>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-xs mx-auto">
-                              This QR code will be used as default for new payments
-                            </p>
-                          </div>
-                          
-                          <Input
-                            id="default-qr-file"
-                            type="file"
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            accept="image/*"
-                            onChange={handleDefaultQrUpload}
-                          />
-                        </div>
-                      )}
+                          {size.charAt(0).toUpperCase() + size.slice(1)}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="border-style">Border Style</Label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Choose the border style for your QR codes
+                    </p>
+                    <div className="flex gap-2">
+                      {["square", "rounded", "circle"].map((style) => (
+                        <Button
+                          key={style}
+                          type="button"
+                          variant={qrCodeSettings.borderStyle === style ? "default" : "outline"}
+                          onClick={() => setQrCodeSettings({
+                            ...qrCodeSettings, 
+                            borderStyle: style
+                          })}
+                        >
+                          {style.charAt(0).toUpperCase() + style.slice(1)}
+                        </Button>
+                      ))}
                     </div>
                   </div>
                 </CardContent>
-              </TabsContent>
-
-              <TabsContent value="whatsapp" className="mt-0">
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="whatsapp" className="mt-0">
+              <Card>
                 <CardHeader>
-                  <CardTitle>WhatsApp Settings</CardTitle>
+                  <CardTitle>WhatsApp Integration</CardTitle>
                   <CardDescription>
-                    Configure WhatsApp contact and message templates
+                    Configure WhatsApp notifications for payments
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-whatsapp">Admin WhatsApp Number</Label>
-                      <Input 
-                        id="admin-whatsapp" 
-                        value={adminWhatsApp}
-                        onChange={(e) => setAdminWhatsApp(e.target.value)}
-                        placeholder="e.g. 628123456789"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Include country code without + (e.g., 628123456789)
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="whatsapp-enabled">Enable Notifications</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Receive payment notifications via WhatsApp
                       </p>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="whatsapp-message">Default Message Template</Label>
-                      <Textarea
-                        id="whatsapp-message"
-                        value={whatsAppMessage}
-                        onChange={(e) => setWhatsAppMessage(e.target.value)}
-                        placeholder="Default message for payment confirmation"
-                        className="min-h-24"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        This message will be sent when a customer confirms payment
-                      </p>
-                    </div>
-                    
-                    <Button 
-                      onClick={saveWhatsAppSettings}
-                      className="w-full"
-                    >
-                      Save WhatsApp Settings
-                    </Button>
+                    <Switch 
+                      id="whatsapp-enabled" 
+                      checked={whatsappEnabled} 
+                      onCheckedChange={setWhatsappEnabled} 
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="whatsapp-number">WhatsApp Number</Label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Enter your WhatsApp number with country code
+                    </p>
+                    <Input
+                      id="whatsapp-number"
+                      placeholder="628123456789"
+                      value={whatsappNumber}
+                      onChange={(e) => setWhatsappNumber(e.target.value)}
+                      className="max-w-sm"
+                      disabled={!whatsappEnabled}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Format: country code + number (e.g., 628123456789)
+                    </p>
                   </div>
                 </CardContent>
-              </TabsContent>
-
-              <TabsContent value="account" className="mt-0">
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="account" className="mt-0">
+              <Card>
                 <CardHeader>
-                  <CardTitle>Account Settings</CardTitle>
+                  <CardTitle>Account Information</CardTitle>
                   <CardDescription>
                     Manage your account details
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {user && (
-                    <div className="space-y-4">
-                      <div className="p-4 border rounded-md bg-muted/50">
-                        <div className="flex items-start gap-4">
-                          <div className="bg-primary/10 rounded-full p-3">
-                            <User className="h-6 w-6 text-primary" />
-                          </div>
-                          <div className="space-y-1">
-                            <p className="font-medium">{user.email}</p>
-                            <p className="text-sm text-muted-foreground">
-                              Logged in since: {new Date(user.created_at || "").toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <Button 
-                        variant="destructive"
-                        onClick={() => signOut()}
-                        className="flex items-center gap-2"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Sign Out
-                      </Button>
-                    </div>
-                  )}
+                  <div>
+                    <Label htmlFor="username">Full Name</Label>
+                    <Input
+                      id="username"
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      className="max-w-sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      disabled
+                      className="max-w-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Contact support to change your email address
+                    </p>
+                  </div>
+                  
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleSignOut}
+                    className="mt-4"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
                 </CardContent>
-              </TabsContent>
-
-              <TabsContent value="sync" className="mt-0">
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="sync" className="mt-0">
+              <Card>
                 <CardHeader>
                   <CardTitle>Sync Settings</CardTitle>
                   <CardDescription>
-                    Save and load your settings from the cloud
+                    Configure how often your data syncs with the server
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="p-4 border rounded-md bg-muted/50">
-                      <p className="text-sm">
-                        You can save your current settings to your account and restore them on any device.
-                      </p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <Button 
-                        onClick={saveSettingsToSupabase}
-                        className="w-full"
-                        variant="default"
-                      >
-                        Save Settings to Cloud
-                      </Button>
-                      
-                      <Button 
-                        onClick={loadSettingsFromSupabase}
-                        className="w-full"
-                        variant="outline"
-                      >
-                        Load Settings from Cloud
-                      </Button>
+                  <div>
+                    <Label htmlFor="sync-interval">Sync Interval (minutes)</Label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Choose how frequently your data syncs with the server
+                    </p>
+                    <div className="flex gap-2">
+                      {["5", "15", "30", "60"].map((interval) => (
+                        <Button
+                          key={interval}
+                          type="button"
+                          variant={syncInterval === interval ? "default" : "outline"}
+                          onClick={() => setSyncInterval(interval)}
+                        >
+                          {interval} min
+                        </Button>
+                      ))}
                     </div>
                   </div>
                 </CardContent>
-              </TabsContent>
-            </Tabs>
-          </Card>
-        </motion.div>
+              </Card>
+            </TabsContent>
+          </Tabs>
+          
+          <div className="flex justify-end mt-6">
+            <Button 
+              onClick={handleSaveSettings} 
+              disabled={loading}
+              className="px-8"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {loading ? "Saving..." : "Save Settings"}
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default SettingsPage;

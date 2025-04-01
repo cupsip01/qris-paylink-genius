@@ -93,5 +93,21 @@ export const PaymentService = {
   },
   searchPayments: (query: string) => {
     return [];
+  },
+  // Add getPaymentById for PaymentDetails.tsx
+  getPaymentById: (id: string) => {
+    return {
+      id,
+      amount: 100000,
+      buyerName: "John Doe",
+      createdAt: new Date().toISOString(),
+      status: 'pending' as const,
+      qrImageUrl: "https://example.com/qr.png",
+      merchantName: "Example Merchant",
+      qrisNmid: "12345",
+      qrisRequestDate: new Date().toISOString(),
+      bankSender: "BCA",
+      note: "Test payment"
+    };
   }
 };

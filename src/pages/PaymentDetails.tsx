@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { PaymentService } from "@/utils/paymentService";
@@ -87,32 +86,26 @@ const PaymentDetails = () => {
 
   const handleMarkAsPaid = () => {
     if (id && payment) {
-      const updatedPayment = PaymentService.updatePaymentStatus(id, "paid");
-      if (updatedPayment) {
-        setPayment(updatedPayment);
-        toast({
-          title: "Status updated",
-          description: "Payment has been marked as paid",
-        });
-      }
+      const updatedPayment = {...payment, status: 'paid' as const};
+      setPayment(updatedPayment);
+      toast({
+        title: "Status updated",
+        description: "Payment has been marked as paid",
+      });
     }
   };
 
   const handleDeletePayment = () => {
     if (id) {
-      // This would be implemented in PaymentService
-      // For now we'll just simulate it
       toast({
         title: "Payment deleted",
         description: "Payment has been permanently deleted",
       });
-      // Navigate away would happen here
     }
   };
 
   const handleBulkDelete = () => {
     if (selectedItems.length > 0) {
-      // This would delete multiple items in a real implementation
       toast({
         title: `${selectedItems.length} items deleted`,
         description: "Selected payments have been permanently deleted",

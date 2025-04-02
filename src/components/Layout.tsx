@@ -38,8 +38,8 @@ const Layout = ({ children }: LayoutProps) => {
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="bg-white dark:bg-gray-800 border-b">
-        <div className="container mx-auto flex justify-between items-center p-4">
+      <header className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4">
+        <div className="container mx-auto flex justify-between items-center">
           <Link to="/" className="text-2xl font-bold flex items-center gap-2">
             <img 
               src="/logokeuanganpay.webp" 
@@ -57,6 +57,7 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
               <Button 
                 variant="ghost" 
+                className="text-white hover:bg-white/20"
                 onClick={handleSignOut}
               >
                 <LogOut size={18} className="mr-2" />

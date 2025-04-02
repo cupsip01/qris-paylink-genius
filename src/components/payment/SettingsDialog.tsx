@@ -24,6 +24,7 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   const [adminWhatsApp, setAdminWhatsApp] = useState("628123456789");
   const [whatsAppMessage, setWhatsAppMessage] = useState("Halo admin, saya sudah transfer untuk pesanan");
   const [defaultQrImage, setDefaultQrImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Load settings from localStorage on component mount
   useEffect(() => {
@@ -51,21 +52,38 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
       return;
     }
     
+    setIsLoading(true);
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
-        setDefaultQrImage(event.target.result as string);
-        localStorage.setItem('defaultQrImage', event.target.result as string);
-        toast.success("Default QR code has been saved");
+        try {
+          setDefaultQrImage(event.target.result as string);
+          localStorage.setItem('defaultQrImage', event.target.result as string);
+          toast.success("Default QR code has been saved");
+        } catch (error) {
+          console.error("Failed to save QR image to localStorage:", error);
+          toast.error("Failed to save QR image. It might be too large.");
+        } finally {
+          setIsLoading(false);
+        }
       }
+    };
+    reader.onerror = () => {
+      toast.error("Failed to read the image file");
+      setIsLoading(false);
     };
     reader.readAsDataURL(file);
   };
 
   const saveWhatsAppSettings = () => {
-    localStorage.setItem('adminWhatsApp', adminWhatsApp);
-    localStorage.setItem('whatsAppMessage', whatsAppMessage);
-    toast.success("WhatsApp settings saved successfully");
+    try {
+      localStorage.setItem('adminWhatsApp', adminWhatsApp);
+      localStorage.setItem('whatsAppMessage', whatsAppMessage);
+      toast.success("WhatsApp settings saved successfully");
+    } catch (error) {
+      console.error("Failed to save WhatsApp settings:", error);
+      toast.error("Failed to save WhatsApp settings");
+    }
   };
 
   return (
@@ -91,6 +109,10 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                       src={defaultQrImage} 
                       alt="Default QR" 
                       className="w-40 h-40 object-contain" 
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "https://via.placeholder.com/150x150?text=Invalid+QR";
+                      }}
                     />
                     <Button 
                       variant="outline" 
@@ -126,6 +148,7 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       accept="image/*"
                       onChange={handleDefaultQrUpload}
+                      disabled={isLoading}
                     />
                   </div>
                 )}

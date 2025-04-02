@@ -41,8 +41,12 @@ const Index = () => {
         note: note || undefined
       });
       
-      toast.success("Payment created successfully!");
-      navigate(`/payment/${payment.id}`);
+      if (payment && payment.id) {
+        toast.success("Payment created successfully!");
+        navigate(`/payment/${payment.id}`);
+      } else {
+        throw new Error("Failed to create payment");
+      }
     } catch (error) {
       console.error("Error creating payment:", error);
       toast.error("Failed to create payment. Please try again.");

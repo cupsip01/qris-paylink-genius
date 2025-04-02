@@ -20,30 +20,37 @@ const QRCodeDisplay = ({
 }: QRCodeDisplayProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // If no QR image is provided, use default placeholder
+  const imageUrl = qrImageUrl || "https://via.placeholder.com/300x300?text=QR+Code";
+
   return (
     <div className="flex flex-col items-center py-6">
-      {qrImageUrl && (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="relative bg-gradient-to-br from-indigo-50 to-violet-50 p-6 rounded-2xl shadow-lg mb-4"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-transparent to-violet-100/30 rounded-2xl" />
-          <div className="relative z-10">
-            <motion.img 
-              src={qrImageUrl} 
-              alt="QRIS Payment QR Code" 
-              className="h-72 w-72 object-contain rounded-lg" 
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            />
-            <div className="absolute top-3 right-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white px-3 py-1 rounded-full text-xs font-medium">
-              QRIS
-            </div>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative bg-gradient-to-br from-indigo-50 to-violet-50 p-6 rounded-2xl shadow-lg mb-4"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-violet-100/30 rounded-2xl" />
+        <div className="relative z-10">
+          <motion.img 
+            src={imageUrl} 
+            alt="QRIS Payment QR Code" 
+            className="h-72 w-72 object-contain rounded-lg" 
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 300 }}
+            onError={(e) => {
+              // If image fails to load, set to placeholder
+              const target = e.target as HTMLImageElement;
+              target.src = "https://via.placeholder.com/300x300?text=QR+Code+Not+Found";
+              console.error("QR code image failed to load:", qrImageUrl);
+            }}
+          />
+          <div className="absolute top-3 right-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white px-3 py-1 rounded-full text-xs font-medium">
+            QRIS
           </div>
-        </motion.div>
-      )}
+        </div>
+      </motion.div>
       
       <motion.button 
         onClick={() => setIsExpanded(!isExpanded)}

@@ -2,6 +2,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from "@/integrations/supabase/client";
 import { Payment } from "@/types/payment";
+import { convertStaticToDynamicQRIS, parseQrisData } from './qrisUtils';
 
 export const createPayment = async (data: {
   amount: number;
@@ -95,7 +96,8 @@ const mockPayments: Payment[] = [
     note: "Monthly subscription",
     merchantName: "My Store",
     qrisNmid: "ID10023456789",
-    qrisRequestDate: new Date().toISOString()
+    qrisRequestDate: new Date().toISOString(),
+    qrImageUrl: "https://example.com/qr.png"
   },
   {
     id: "2",
@@ -107,7 +109,8 @@ const mockPayments: Payment[] = [
     note: "Product purchase",
     merchantName: "My Store",
     qrisNmid: "ID10023456789",
-    qrisRequestDate: new Date(Date.now() - 86400000).toISOString()
+    qrisRequestDate: new Date(Date.now() - 86400000).toISOString(),
+    qrImageUrl: "https://example.com/qr2.png"
   },
   {
     id: "3",
@@ -119,7 +122,8 @@ const mockPayments: Payment[] = [
     note: "Service fee",
     merchantName: "My Store",
     qrisNmid: "ID10023456789",
-    qrisRequestDate: new Date(Date.now() - 172800000).toISOString()
+    qrisRequestDate: new Date(Date.now() - 172800000).toISOString(),
+    qrImageUrl: "https://example.com/qr3.png"
   }
 ];
 

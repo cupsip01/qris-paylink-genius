@@ -11,6 +11,7 @@ import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { format } from "date-fns";
 import { supabase } from "@/lib/supabaseClient";
 import { convertStaticToDynamicQRIS, generateQRImageFromQRIS } from "@/utils/qrisUtils";
+import { toast } from "@/components/ui/use-toast";
 
 interface CustomerPaymentViewProps {
   payment: Payment;
@@ -47,28 +48,33 @@ const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
     try {
       setIsLoading(true);
       
-      // Get static QRIS from settings
+      // Ambil kode QRIS statis dari settings
       const { data: settings } = await supabase
         .from('settings')
         .select('qris_code')
         .single();
       
       if (!settings?.qris_code) {
-        throw new Error("No default QRIS code found");
+        throw new Error("Belum ada kode QRIS default. Silakan upload di halaman Settings.");
       }
 
-      // Convert to dynamic QRIS with amount
+      // Konversi ke QRIS dinamis dengan nominal
       const dynamicQRIS = convertStaticToDynamicQRIS(
         settings.qris_code,
         payment.amount.toString()
       );
 
-      // Generate QR code image
+      // Generate QR code image dari QRIS dinamis
       const qrImageUrl = generateQRImageFromQRIS(dynamicQRIS);
       setQrisImageUrl(qrImageUrl);
 
     } catch (error) {
       console.error("Error generating dynamic QRIS:", error);
+      toast({
+        title: "Error",
+        description: "Gagal membuat QRIS dinamis. Pastikan sudah mengupload QRIS di Settings.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }

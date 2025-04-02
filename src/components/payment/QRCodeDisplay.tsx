@@ -1,5 +1,7 @@
-import { Info, Barcode } from "lucide-react";
-import { formatCurrency } from "./PaymentAmount";
+
+import { useState } from "react";
+import { format } from "date-fns";
+import { motion } from "framer-motion";
 
 interface QRCodeDisplayProps {
   qrImageUrl?: string;
@@ -11,54 +13,86 @@ interface QRCodeDisplayProps {
 
 const QRCodeDisplay = ({ 
   qrImageUrl, 
-  amount, 
   qrisNmid, 
-  merchantName = "Jedo Store", 
-  qrisRequestDate 
+  merchantName, 
+  qrisRequestDate,
+  amount
 }: QRCodeDisplayProps) => {
-  if (!qrImageUrl) return null;
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
-  // Calculate expiry time (30 minutes from creation)
-  const expiryTime = qrisRequestDate 
-    ? new Date(new Date(qrisRequestDate).getTime() + 30 * 60 * 1000) 
-    : null;
+  // If no QR image is provided or there was an error loading it, use default placeholder
+  const imageUrl = (imageError || !qrImageUrl) 
+    ? "https://via.placeholder.com/300x300?text=QR+Code"
+    : qrImageUrl;
 
-  const isExpired = expiryTime ? new Date() > expiryTime : false;
-  const expiryTimeString = expiryTime ? 
-    `${expiryTime.getHours().toString().padStart(2, '0')}:${expiryTime.getMinutes().toString().padStart(2, '0')}` : 
-    '';
+  const formattedAmount = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+  }).format(amount);
 
   return (
-    <div className="flex justify-center mb-6">
-      <div className="flex flex-col items-center bg-white p-4 border rounded-lg shadow-md">
-        <div className="flex items-center gap-2 mb-2">
-          <Barcode className="h-4 w-4 text-qris-red" />
-          <div className="text-center font-semibold">QRIS - {merchantName}</div>
-        </div>
-        <img 
-          src={qrImageUrl} 
-          alt="QRIS Payment QR Code with Amount"
-          className="max-w-full"
-          style={{width: 'auto', height: 'auto', maxHeight: '300px'}}
-        />
-        <div className="text-center mt-4 bg-gray-100 p-2 rounded w-full">
-          <div className="font-bold mb-1">Total Bayar: {formatCurrency(amount)}</div>
-          <div className="text-xs">NMID: {qrisNmid || "ID1024313642810"}</div>
-          {expiryTimeString && (
-            <div className="text-xs mt-1">
-              {isExpired ? (
-                <span className="text-red-600">EXPIRED</span>
-              ) : (
-                <span>Valid until {expiryTimeString} WIB</span>
-              )}
-            </div>
-          )}
-          <div className="flex justify-center items-center gap-1 mt-2">
-            <Info className="h-3 w-3 text-gray-500" />
-            <div className="text-sm text-gray-600">QR sudah terisi nominal {formatCurrency(amount)}</div>
+    <div className="flex flex-col items-center py-6">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative bg-gradient-to-br from-indigo-50 to-violet-50 p-6 rounded-2xl shadow-lg mb-4"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-violet-100/30 rounded-2xl" />
+        <div className="relative z-10">
+          <motion.img 
+            src={imageUrl} 
+            alt="QRIS Payment QR Code" 
+            className="h-72 w-72 object-contain rounded-lg" 
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 300 }}
+            onError={(e) => {
+              console.error("QR code image failed to load:", qrImageUrl);
+              setImageError(true);
+              const target = e.target as HTMLImageElement;
+              target.src = "https://via.placeholder.com/300x300?text=QR+Code+Not+Found";
+            }}
+          />
+          <div className="absolute top-3 right-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white px-3 py-1 rounded-full text-xs font-medium">
+            {formattedAmount}
           </div>
         </div>
-      </div>
+      </motion.div>
+      
+      <motion.button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="text-sm bg-gradient-to-r from-violet-500 to-purple-600 text-white px-4 py-2 rounded-full mt-2 font-medium shadow-md hover:shadow-lg transition-all duration-300"
+        whileHover={{ y: -2 }}
+        whileTap={{ y: 0 }}
+      >
+        {isExpanded ? "Hide details" : "Show QRIS details"}
+      </motion.button>
+      
+      {isExpanded && (
+        <motion.div 
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mt-4 text-sm text-gray-600 w-full bg-white/80 backdrop-blur-sm p-4 rounded-xl border border-purple-100 shadow-sm"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <div className="text-right font-medium text-violet-700">Merchant:</div>
+            <div className="font-sans">{merchantName || "My Store"}</div>
+            
+            <div className="text-right font-medium text-violet-700">NMID:</div>
+            <div className="font-mono text-xs bg-gray-50 p-1 rounded">{qrisNmid || "ID10023456789"}</div>
+            
+            <div className="text-right font-medium text-violet-700">Generated:</div>
+            <div className="font-sans">
+              {qrisRequestDate 
+                ? format(new Date(qrisRequestDate), "dd MMM yyyy HH:mm") 
+                : format(new Date(), "dd MMM yyyy HH:mm")}
+            </div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };

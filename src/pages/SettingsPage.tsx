@@ -19,13 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings, PanelLeft, Moon, QrCode, User, Globe, Upload, Sun, Smartphone, AlertCircle } from "lucide-react";
+import { Settings, PanelLeft, Moon, QrCode, User, Globe, Upload, Sun, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Profile } from "@/types/profiles";
 import { parseQrisData } from "@/utils/qrisUtils";
-import { toast } from "sonner";
-import Tesseract from 'tesseract.js';
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
@@ -33,11 +31,6 @@ const SettingsPage = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("general");
   const [loading, setLoading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadedQrImage, setUploadedQrImage] = useState<string | null>(null);
-  const [qrisCode, setQrisCode] = useState("");
-  const [merchantName, setMerchantName] = useState("");
-  const [nmid, setNmid] = useState("");
   
   // User profile and preferences
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -251,108 +244,75 @@ const SettingsPage = () => {
     }
   };
 
-  const handleQrisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUploadError(null);
-    const file = e.target.files?.[0];
-    
-    if (!file) return;
-    
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Please upload an image file');
-      return;
-    }
-    
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadError('File size should be less than 10MB');
-      return;
-    }
-
-    setLoading(true);
-    
+  const handleQrisUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      // Read file as base64
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      setUploadingQr(true);
+
+      // Baca file sebagai base64
       const reader = new FileReader();
-      reader.onload = async (event) => {
-        if (event.target?.result) {
-          const base64Image = event.target.result as string;
-          setUploadedQrImage(base64Image);
-
-          // Perform OCR on the image
-          const result = await Tesseract.recognize(
-            base64Image,
-            'eng',
-            { logger: m => console.log(m) }
-          );
-
-          // Extract QRIS code from OCR result
-          const qrisMatch = result.data.text.match(/000201[0-9A-Za-z]+/);
-          if (qrisMatch) {
-            const extractedQris = qrisMatch[0];
-            setQrisCode(extractedQris);
-            
-            // Extract merchant name and NMID
-            const merchantMatch = extractedQris.match(/5910([^60]+)/);
-            const nmidMatch = extractedQris.match(/ID(\d+)/);
-            
-            if (merchantMatch) {
-              setMerchantName(merchantMatch[1].trim());
-            }
-            if (nmidMatch) {
-              setNmid("ID" + nmidMatch[1]);
-            }
-
-            // Save to database
-            const { error: saveError } = await supabase
-              .from('settings')
-              .upsert({
-                qris_code: extractedQris,
-                qris_image: base64Image,
-                merchant_name: merchantMatch ? merchantMatch[1].trim() : "",
-                nmid: nmidMatch ? "ID" + nmidMatch[1] : "",
-                updated_at: new Date().toISOString()
-              });
-
-            if (saveError) throw saveError;
-
-            toast.success("QRIS code extracted and saved successfully");
-          } else {
-            setUploadError("No valid QRIS code found in the image");
-            toast.error("No valid QRIS code found in the image");
+      reader.onload = async () => {
+        try {
+          const base64Image = reader.result as string;
+          
+          // Kirim ke API QR Code reader
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          const response = await fetch('https://api.qrserver.com/v1/read-qr-code/', {
+            method: 'POST',
+            body: formData
+          });
+          
+          const data = await response.json();
+          const qrisCode = data[0]?.symbol[0]?.data;
+          
+          if (!qrisCode || !qrisCode.startsWith('00020101')) {
+            throw new Error("Format QRIS tidak valid");
           }
+
+          // Simpan ke database
+          const { error } = await supabase
+            .from('settings')
+            .upsert({ 
+              id: 1,
+              qris_code: qrisCode,
+              qris_image: base64Image
+            });
+
+          if (error) throw error;
+
+          setDefaultQrisCode(qrisCode);
+          setDefaultQrImage(base64Image);
+          
+          toast({
+            title: "Berhasil",
+            description: "QRIS berhasil diupload dan disimpan",
+          });
+
+        } catch (error) {
+          console.error("Error processing QRIS:", error);
+          toast({
+            title: "Error",
+            description: "Gagal memproses QRIS. Pastikan gambar berisi kode QRIS yang valid.",
+            variant: "destructive"
+          });
         }
       };
+
       reader.readAsDataURL(file);
+
     } catch (error) {
-      console.error("Error processing QRIS:", error);
-      setUploadError("Failed to process QRIS image");
-      toast.error("Failed to process QRIS image");
+      console.error("Error uploading QRIS:", error);
+      toast({
+        title: "Error",
+        description: "Gagal upload QRIS. Silakan coba lagi.",
+        variant: "destructive"
+      });
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveSettings = async () => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('settings')
-        .upsert({
-          qris_code: qrisCode,
-          merchant_name: merchantName,
-          nmid: nmid,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-
-      toast.success("Settings saved successfully");
-    } catch (error) {
-      console.error("Error saving settings:", error);
-      toast.error("Failed to save settings");
-    } finally {
-      setLoading(false);
+      setUploadingQr(false);
     }
   };
 
@@ -529,10 +489,10 @@ const SettingsPage = () => {
                             </Label>
                           </div>
                         </div>
-                        {qrisCode && (
+                        {defaultQrisCode && (
                           <div className="mt-2">
                             <p className="text-sm text-gray-500">Current QRIS Code:</p>
-                            <p className="text-xs text-gray-400 break-all">{qrisCode}</p>
+                            <p className="text-xs text-gray-400 break-all">{defaultQrisCode}</p>
                           </div>
                         )}
                       </div>
@@ -582,7 +542,7 @@ const SettingsPage = () => {
               
               <div className="mt-6 flex justify-end">
                 <Button
-                  onClick={handleSaveSettings}
+                  onClick={savePreferences}
                   disabled={loading}
                   className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                 >

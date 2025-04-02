@@ -34,6 +34,13 @@ const Index = () => {
     setLoading(true);
     
     try {
+      console.log("Creating payment with data:", { 
+        amount: Number(amount), 
+        buyer_name: name || undefined,
+        bank_sender: bankSender || undefined,
+        note: note || undefined
+      });
+      
       const payment = await createPayment({
         amount: Number(amount),
         buyer_name: name || undefined,
@@ -43,9 +50,10 @@ const Index = () => {
       
       if (payment && payment.id) {
         toast.success("Payment created successfully!");
+        console.log("Payment created, navigating to:", `/payment/${payment.id}`);
         navigate(`/payment/${payment.id}`);
       } else {
-        throw new Error("Failed to create payment");
+        throw new Error("Failed to create payment - no ID returned");
       }
     } catch (error) {
       console.error("Error creating payment:", error);

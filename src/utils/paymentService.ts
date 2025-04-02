@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from "@/integrations/supabase/client";
 import { Payment } from "@/types/payment";
@@ -10,10 +9,16 @@ export const createPayment = async (data: {
   bank_sender?: string;
   note?: string;
 }) => {
-  const paymentId = uuidv4();
-  const dynamicQrCode = `https://example.com/payment/${paymentId}`; // Replace with your actual dynamic QR code generation logic
-
   try {
+    const paymentId = uuidv4();
+    
+    // For now, we'll use a placeholder QR image
+    // In a real implementation, you would get this from a QRIS provider API
+    const qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + 
+                      encodeURIComponent(`https://example.com/payment/${paymentId}?amount=${data.amount}`);
+    
+    const currentDate = new Date().toISOString();
+    
     const { data: payment, error } = await supabase
       .from('payments')
       .insert([
@@ -23,20 +28,31 @@ export const createPayment = async (data: {
           amount: data.amount,
           bank_sender: data.bank_sender,
           note: data.note,
-          dynamic_qris: dynamicQrCode,
+          dynamic_qris: qrImageUrl, // Using the QR image URL as dynamic_qris
           status: 'pending',
         },
       ])
-      .select()
+      .select();
 
     if (error) {
       console.error("Error creating payment:", error);
       throw new Error("Failed to create payment in database");
     }
 
+    console.log("Payment created successfully:", payment);
+
     return {
       id: paymentId,
-      qr_code_url: dynamicQrCode,
+      amount: data.amount,
+      buyerName: data.buyer_name,
+      bankSender: data.bank_sender,
+      note: data.note,
+      createdAt: currentDate,
+      status: 'pending',
+      qrImageUrl: qrImageUrl,
+      merchantName: "My Store",
+      qrisNmid: "ID10023456789",
+      qrisRequestDate: currentDate,
     };
   } catch (error: any) {
     console.error("Error creating payment:", error);
@@ -57,7 +73,24 @@ export const getPayment = async (id: string) => {
       throw new Error("Failed to fetch payment");
     }
 
-    return data;
+    if (!data) {
+      throw new Error("Payment not found");
+    }
+
+    // Transform the database record into our Payment type
+    return {
+      id: data.id,
+      amount: data.amount,
+      buyerName: data.buyer_name,
+      bankSender: data.bank_sender,
+      note: data.note,
+      createdAt: data.created_at,
+      status: data.status,
+      qrImageUrl: data.dynamic_qris,
+      merchantName: "My Store", // Default values for now
+      qrisNmid: "ID10023456789",
+      qrisRequestDate: data.created_at,
+    } as Payment;
   } catch (error: any) {
     console.error("Error fetching payment:", error);
     throw new Error(error.message || "Failed to fetch payment");

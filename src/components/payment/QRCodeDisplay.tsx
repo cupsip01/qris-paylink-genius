@@ -19,9 +19,17 @@ const QRCodeDisplay = ({
   amount
 }: QRCodeDisplayProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
-  // If no QR image is provided, use default placeholder
-  const imageUrl = qrImageUrl || "https://via.placeholder.com/300x300?text=QR+Code";
+  // If no QR image is provided or there was an error loading it, use default placeholder
+  const imageUrl = (imageError || !qrImageUrl) 
+    ? "https://via.placeholder.com/300x300?text=QR+Code"
+    : qrImageUrl;
+
+  const formattedAmount = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+  }).format(amount);
 
   return (
     <div className="flex flex-col items-center py-6">
@@ -40,14 +48,14 @@ const QRCodeDisplay = ({
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 300 }}
             onError={(e) => {
-              // If image fails to load, set to placeholder
+              console.error("QR code image failed to load:", qrImageUrl);
+              setImageError(true);
               const target = e.target as HTMLImageElement;
               target.src = "https://via.placeholder.com/300x300?text=QR+Code+Not+Found";
-              console.error("QR code image failed to load:", qrImageUrl);
             }}
           />
           <div className="absolute top-3 right-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white px-3 py-1 rounded-full text-xs font-medium">
-            QRIS
+            {formattedAmount}
           </div>
         </div>
       </motion.div>
@@ -71,16 +79,16 @@ const QRCodeDisplay = ({
         >
           <div className="grid grid-cols-2 gap-3">
             <div className="text-right font-medium text-violet-700">Merchant:</div>
-            <div className="font-sans">{merchantName || "-"}</div>
+            <div className="font-sans">{merchantName || "My Store"}</div>
             
             <div className="text-right font-medium text-violet-700">NMID:</div>
-            <div className="font-mono text-xs bg-gray-50 p-1 rounded">{qrisNmid || "-"}</div>
+            <div className="font-mono text-xs bg-gray-50 p-1 rounded">{qrisNmid || "ID10023456789"}</div>
             
             <div className="text-right font-medium text-violet-700">Generated:</div>
             <div className="font-sans">
               {qrisRequestDate 
                 ? format(new Date(qrisRequestDate), "dd MMM yyyy HH:mm") 
-                : "-"}
+                : format(new Date(), "dd MMM yyyy HH:mm")}
             </div>
           </div>
         </motion.div>

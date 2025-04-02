@@ -23,6 +23,7 @@ import { Settings, PanelLeft, Moon, QrCode, User, Globe, Upload, Sun, Smartphone
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Profile } from "@/types/profiles";
+import { parseQrisData } from "@/utils/qrisUtils";
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
@@ -39,6 +40,7 @@ const SettingsPage = () => {
   const [language, setLanguage] = useState("en");
   const [theme, setTheme] = useState("light");
   const [uploadingQr, setUploadingQr] = useState(false);
+  const [defaultQrisCode, setDefaultQrisCode] = useState("");
 
   useEffect(() => {
     // Load saved preferences from localStorage for quicker access
@@ -76,6 +78,8 @@ const SettingsPage = () => {
     if (user) {
       fetchUserProfile();
     }
+    
+    loadDefaultQrisCode();
     
     return () => {
       mediaQuery.removeEventListener('change', handleSystemThemeChange);
@@ -225,14 +229,97 @@ const SettingsPage = () => {
     }
   };
 
+  const loadDefaultQrisCode = async () => {
+    try {
+      const { data: settings } = await supabase
+        .from('settings')
+        .select('qris_code')
+        .single();
+      
+      if (settings?.qris_code) {
+        setDefaultQrisCode(settings.qris_code);
+      }
+    } catch (error) {
+      console.error("Error loading QRIS code:", error);
+    }
+  };
+
+  const handleQrisUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      setUploadingQr(true);
+
+      // Read the QR code image
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          // Send to QR code decoder API
+          const response = await fetch('https://api.qrserver.com/v1/read-qr-code/', {
+            method: 'POST',
+            body: new FormData().append('file', file)
+          });
+          
+          const data = await response.json();
+          const qrisCode = data[0]?.symbol[0]?.data;
+          
+          if (!qrisCode) {
+            throw new Error("Could not read QRIS code from image");
+          }
+
+          // Validate QRIS format
+          const qrisData = parseQrisData(qrisCode);
+          if (!qrisData.nmid) {
+            throw new Error("Invalid QRIS code format");
+          }
+
+          // Save to database
+          const { error } = await supabase
+            .from('settings')
+            .upsert({ 
+              id: 1,
+              qris_code: qrisCode,
+              merchant_name: qrisData.merchantName,
+              merchant_id: qrisData.nmid
+            });
+
+          if (error) throw error;
+
+          setDefaultQrisCode(qrisCode);
+          toast({
+            title: "Success",
+            description: "QRIS code has been updated",
+          });
+
+        } catch (error) {
+          console.error("Error processing QRIS:", error);
+          toast({
+            title: "Error",
+            description: "Failed to process QRIS code. Please try again.",
+            variant: "destructive"
+          });
+        }
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Error uploading QRIS:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload QRIS code. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingQr(false);
+    }
+  };
+
   return (
-   
+    <Layout>
       <div className="container mx-auto py-10 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <div className="inline-block p-3 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 mb-4">
-              <Settings className="h-10 w-10 text-white" />
-            </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               Settings
             </h1>
@@ -376,7 +463,7 @@ const SettingsPage = () => {
                         />
                       </div>
                       
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         <Label>Default QR Image</Label>
                         <div className="flex items-center space-x-2">
                           <div className="flex-1">
@@ -393,23 +480,20 @@ const SettingsPage = () => {
                               <Input
                                 id="qrImageUpload"
                                 type="file"
-                                accept="image/*"
                                 className="hidden"
-                                onChange={handleQrImageUpload}
+                                accept="image/*"
+                                onChange={handleQrisUpload}
                                 disabled={uploadingQr}
                               />
                             </Label>
                           </div>
-                          {defaultQrImage && (
-                            <div className="w-32 h-32 border rounded-lg overflow-hidden">
-                              <img
-                                src={defaultQrImage}
-                                alt="Default QR"
-                                className="w-full h-full object-contain"
-                              />
-                            </div>
-                          )}
                         </div>
+                        {defaultQrisCode && (
+                          <div className="mt-2">
+                            <p className="text-sm text-gray-500">Current QRIS Code:</p>
+                            <p className="text-xs text-gray-400 break-all">{defaultQrisCode}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -468,7 +552,7 @@ const SettingsPage = () => {
           </div>
         </div>
       </div>
-  
+    </Layout>
   );
 };
 

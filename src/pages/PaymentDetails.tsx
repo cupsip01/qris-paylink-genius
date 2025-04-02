@@ -1,116 +1,114 @@
-
-import { useState, useEffect } from "react";
-import { useParams, Navigate, useNavigate } from "react-router-dom";
-import { PaymentService } from "@/utils/paymentService";
-import { Payment } from "@/types/payment";
-import { 
-  Card, 
-  CardContent
-} from "@/components/ui/card";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import Layout from "@/components/Layout";
-import CustomerPaymentView from "@/components/payment/CustomerPaymentView";
-import { useAuth } from "@/context/AuthProvider";
-import { toast } from "sonner";
-import { MessageSquareText, ArrowLeft } from "lucide-react";
+import PaymentHeader from "@/components/payment/PaymentHeader";
+import PaymentAmount from "@/components/payment/PaymentAmount";
+import PaymentInfo from "@/components/payment/PaymentInfo";
+import QRCodeDisplay from "@/components/payment/QRCodeDisplay";
+import { Payment } from "@/types/payment";
+import { Card, CardContent } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import { MessageSquareText, Settings } from "lucide-react";
+import SettingsDialog from "./SettingsDialog";
+import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { format } from "date-fns";
 
-const PaymentDetails = () => {
-  const { id } = useParams<{ id: string }>();
-  const [payment, setPayment] = useState<Payment | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-  const navigate = useNavigate();
+interface CustomerPaymentViewProps {
+  payment: Payment;
+}
+
+const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
   const [adminWhatsApp, setAdminWhatsApp] = useState("628123456789");
   const [whatsAppMessage, setWhatsAppMessage] = useState("Halo admin, saya sudah transfer untuk pesanan");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
-    const fetchPaymentDetails = async () => {
-      if (!id) return;
-      
-      try {
-        setLoading(true);
-        const fetchedPayment = await PaymentService.getPayment(id);
-        
-        if (fetchedPayment) {
-          console.log("Fetched payment:", fetchedPayment);
-          setPayment(fetchedPayment);
-        }
-      } catch (error) {
-        console.error("Error fetching payment details:", error);
-        toast.error("Failed to load payment details");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     // Load WhatsApp settings
     const savedWhatsApp = localStorage.getItem('adminWhatsApp');
     const savedMessage = localStorage.getItem('whatsAppMessage');
     
     if (savedWhatsApp) setAdminWhatsApp(savedWhatsApp);
     if (savedMessage) setWhatsAppMessage(savedMessage);
-    
-    fetchPaymentDetails();
-  }, [id]);
+  }, []);
 
   const handleWhatsAppConfirmation = () => {
-    if (payment) {
-      const message = `${whatsAppMessage} ${payment.id}`;
-      const encodedMessage = encodeURIComponent(message);
-      window.open(`https://wa.me/${adminWhatsApp}?text=${encodedMessage}`, '_blank');
-    }
+    const message = `${whatsAppMessage} ${payment.id}`;
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/${adminWhatsApp}?text=${encodedMessage}`, '_blank');
   };
-
-  const handleGoBack = () => {
-    navigate(-1);
-  };
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-600" />
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!payment) {
-    return <Navigate to="/not-found" replace />;
-  }
 
   return (
-    <Layout>
-      <div className="container max-w-md mx-auto py-6 px-4">
-        <Button 
-          variant="ghost" 
-          className="mb-4 -ml-2" 
-          onClick={handleGoBack}
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back
-        </Button>
-        
-        <CustomerPaymentView payment={payment} />
-        
-        {!user && (
-          <Card className="mt-4 bg-gray-50 border-dashed border-gray-300">
-            <CardContent className="p-4 text-center">
-              <p className="text-sm text-gray-500 mb-4">
-                If you've completed payment, please notify the admin:
-              </p>
-              <Button 
-                onClick={handleWhatsAppConfirmation} 
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <MessageSquareText className="mr-2 h-4 w-4" />
-                Notify via WhatsApp
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </Layout>
+    <div className="space-y-6">
+      <PaymentHeader createdAt={payment.createdAt} />
+      
+      <PaymentAmount amount={payment.amount} />
+      
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>QRIS Code</CardTitle>
+          </div>
+          <CardDescription>
+            Scan this QR code to pay
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center">
+          <div className="relative">
+            <img 
+              src={payment.qrImageUrl} 
+              alt="QRIS Code"
+              className="w-64 h-64 object-contain"
+            />
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">Status</span>
+            <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+              payment.status === "paid" 
+                ? "bg-green-100 text-green-700" 
+                : "bg-amber-100 text-amber-700"
+            }`}>
+              {payment.status === "paid" ? "Paid" : "Pending"}
+            </div>
+          </div>
+          
+          {payment.buyerName && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-500">Buyer Name</span>
+              <span className="text-sm font-medium">{payment.buyerName}</span>
+            </div>
+          )}
+          
+          {payment.bankSender && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-500">Bank/Sender</span>
+              <span className="text-sm font-medium">{payment.bankSender}</span>
+            </div>
+          )}
+          
+          {payment.note && (
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-500">Note</span>
+              <span className="text-sm font-medium">{payment.note}</span>
+            </div>
+          )}
+          
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">Created</span>
+            <span className="text-sm font-medium">
+              {format(new Date(payment.createdAt), "MMM d, yyyy h:mm a")}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
-export default PaymentDetails;
+export default CustomerPaymentView;

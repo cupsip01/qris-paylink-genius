@@ -206,3 +206,10 @@ export function convertStaticToDynamicQRIS(
     throw new Error("Failed to convert QRIS code");
   }
 }
+
+/**
+ * Generate QR image URL from a dynamic QRIS string
+ */
+export function generateQRImageFromQRIS(qrisData: string): string {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrisData)}`;
+}

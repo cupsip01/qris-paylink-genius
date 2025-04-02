@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { QrCode, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { parseQrisData } from "@/utils/qrisUtils";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -24,6 +25,8 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   const [adminWhatsApp, setAdminWhatsApp] = useState("628123456789");
   const [whatsAppMessage, setWhatsAppMessage] = useState("Halo admin, saya sudah transfer untuk pesanan");
   const [defaultQrImage, setDefaultQrImage] = useState<string | null>(null);
+  const [staticQrisCode, setStaticQrisCode] = useState("");
+  const [merchantInfo, setMerchantInfo] = useState<{nmid: string, merchantName: string, id: string} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Load settings from localStorage on component mount
@@ -31,10 +34,20 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
     const savedQr = localStorage.getItem('defaultQrImage');
     const savedWhatsApp = localStorage.getItem('adminWhatsApp');
     const savedMessage = localStorage.getItem('whatsAppMessage');
+    const savedStaticQris = localStorage.getItem('defaultStaticQris');
     
     if (savedQr) setDefaultQrImage(savedQr);
     if (savedWhatsApp) setAdminWhatsApp(savedWhatsApp);
     if (savedMessage) setWhatsAppMessage(savedMessage);
+    if (savedStaticQris) {
+      setStaticQrisCode(savedStaticQris);
+      try {
+        const info = parseQrisData(savedStaticQris);
+        setMerchantInfo(info);
+      } catch (error) {
+        console.error("Error parsing saved QRIS:", error);
+      }
+    }
   }, [open]);
 
   const handleDefaultQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,6 +99,38 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
     }
   };
 
+  const handleStaticQrisChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setStaticQrisCode(value);
+    
+    if (value.length > 30) { // Only try to parse if we have enough data
+      try {
+        const info = parseQrisData(value);
+        setMerchantInfo(info);
+      } catch (error) {
+        console.error("Error parsing QRIS:", error);
+        setMerchantInfo(null);
+      }
+    } else {
+      setMerchantInfo(null);
+    }
+  };
+
+  const saveStaticQris = () => {
+    if (staticQrisCode.length < 30) {
+      toast.error("Please enter a valid QRIS code");
+      return;
+    }
+
+    try {
+      localStorage.setItem('defaultStaticQris', staticQrisCode);
+      toast.success("QRIS code has been saved");
+    } catch (error) {
+      console.error("Failed to save QRIS code:", error);
+      toast.error("Failed to save QRIS code");
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -99,7 +144,41 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
         <div className="space-y-6 py-4">
           <div>
             <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-              <QrCode className="h-4 w-4" /> Default QR Code
+              <QrCode className="h-4 w-4" /> Static QRIS Code
+            </h3>
+            <div className="border rounded-md p-4">
+              <div className="space-y-3">
+                <Textarea 
+                  placeholder="Paste your static QRIS code here (starts with 00020101...)"
+                  value={staticQrisCode}
+                  onChange={handleStaticQrisChange}
+                  rows={4}
+                  className="font-mono text-xs"
+                />
+                
+                {merchantInfo && (
+                  <div className="bg-gray-50 p-3 text-xs rounded-md">
+                    <div className="font-medium">Merchant Info:</div>
+                    <div>Name: {merchantInfo.merchantName || "Unknown"}</div>
+                    <div>NMID: {merchantInfo.nmid || "Unknown"}</div>
+                  </div>
+                )}
+                
+                <Button 
+                  onClick={saveStaticQris} 
+                  disabled={staticQrisCode.length < 30}
+                  size="sm"
+                  className="w-full"
+                >
+                  Save QRIS Code
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+              <QrCode className="h-4 w-4" /> Default QR Code Image
             </h3>
             <div className="border rounded-md p-4">
               <div className="flex flex-col items-center justify-center mb-4">

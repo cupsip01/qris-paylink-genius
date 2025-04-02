@@ -1,7 +1,8 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from "@/integrations/supabase/client";
 import { Payment } from "@/types/payment";
-import { convertStaticToDynamicQRIS, parseQrisData } from './qrisUtils';
+import { convertStaticToDynamicQRIS, parseQrisData, generateQRImageFromQRIS } from './qrisUtils';
 
 export const createPayment = async (data: {
   amount: number;
@@ -12,14 +13,57 @@ export const createPayment = async (data: {
   try {
     const paymentId = uuidv4();
     
-    // For now, we'll use a placeholder QR image
-    // In a real implementation, you would get this from a QRIS provider API
-    const qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + 
-                      encodeURIComponent(`https://example.com/payment/${paymentId}?amount=${data.amount}`);
+    // Get default static QRIS code from localStorage if available
+    const defaultStaticQris = localStorage.getItem('defaultStaticQris');
+    
+    let qrImageUrl = "";
+    let merchantName = "Jedo Store";
+    let qrisNmid = "ID10243136428";
+    
+    // If we have a default static QRIS, generate dynamic QRIS from it
+    if (defaultStaticQris) {
+      try {
+        // Generate dynamic QRIS with the amount
+        const dynamicQrisContent = convertStaticToDynamicQRIS(defaultStaticQris, data.amount);
+        
+        // Parse QRIS data to extract merchant info
+        const qrisData = parseQrisData(defaultStaticQris);
+        merchantName = qrisData.merchantName;
+        qrisNmid = qrisData.nmid;
+        
+        // Generate QR code image URL from the dynamic QRIS
+        qrImageUrl = generateQRImageFromQRIS(dynamicQrisContent);
+      } catch (err) {
+        console.error("Error processing static QRIS:", err);
+        // Fallback to default QR code generator
+        qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + 
+                    encodeURIComponent(`amount=${data.amount}&id=${paymentId}`);
+      }
+    } else {
+      // Use the default QR image if available
+      const defaultQrImage = localStorage.getItem('defaultQrImage');
+      if (defaultQrImage) {
+        qrImageUrl = defaultQrImage;
+      } else {
+        // Fallback to generated QR
+        qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + 
+                    encodeURIComponent(`amount=${data.amount}&id=${paymentId}`);
+      }
+    }
     
     const currentDate = new Date().toISOString();
     
-    const { data: payment, error } = await supabase
+    // Format for display in Indonesian Rupiah
+    const formattedAmount = new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(data.amount);
+    
+    console.log("Creating payment record with QR:", qrImageUrl);
+    
+    // Insert into Supabase
+    const { data: paymentRecord, error } = await supabase
       .from('payments')
       .insert([
         {
@@ -28,7 +72,7 @@ export const createPayment = async (data: {
           amount: data.amount,
           bank_sender: data.bank_sender,
           note: data.note,
-          dynamic_qris: qrImageUrl, // Using the QR image URL as dynamic_qris
+          dynamic_qris: qrImageUrl, 
           status: 'pending',
         },
       ])
@@ -39,8 +83,9 @@ export const createPayment = async (data: {
       throw new Error("Failed to create payment in database");
     }
 
-    console.log("Payment created successfully:", payment);
+    console.log("Payment created successfully:", paymentRecord);
 
+    // Return full payment object with all needed data for the UI
     return {
       id: paymentId,
       amount: data.amount,
@@ -50,17 +95,18 @@ export const createPayment = async (data: {
       createdAt: currentDate,
       status: 'pending',
       qrImageUrl: qrImageUrl,
-      merchantName: "My Store",
-      qrisNmid: "ID10023456789",
+      merchantName: merchantName,
+      qrisNmid: qrisNmid,
       qrisRequestDate: currentDate,
-    };
+      formattedAmount,
+    } as Payment;
   } catch (error: any) {
     console.error("Error creating payment:", error);
     throw new Error(error.message || "Failed to create payment");
   }
 };
 
-export const getPayment = async (id: string) => {
+export const getPayment = async (id: string): Promise<Payment> => {
   try {
     const { data, error } = await supabase
       .from('payments')
@@ -77,6 +123,13 @@ export const getPayment = async (id: string) => {
       throw new Error("Payment not found");
     }
 
+    // Format the amount for display
+    const formattedAmount = new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(data.amount);
+
     // Transform the database record into our Payment type
     return {
       id: data.id,
@@ -84,12 +137,13 @@ export const getPayment = async (id: string) => {
       buyerName: data.buyer_name,
       bankSender: data.bank_sender,
       note: data.note,
-      createdAt: data.created_at,
+      createdAt: data.created_at || new Date().toISOString(),
       status: data.status,
       qrImageUrl: data.dynamic_qris,
-      merchantName: "My Store", // Default values for now
-      qrisNmid: "ID10023456789",
-      qrisRequestDate: data.created_at,
+      merchantName: "Jedo Store", // Can be updated if stored in the DB
+      qrisNmid: "ID10243136428", // Default, can be updated if stored
+      qrisRequestDate: data.created_at || new Date().toISOString(),
+      formattedAmount,
     } as Payment;
   } catch (error: any) {
     console.error("Error fetching payment:", error);
@@ -117,83 +171,54 @@ export const updatePaymentStatus = async (id: string, status: string) => {
   }
 };
 
-// Mock data for UI development
-const mockPayments: Payment[] = [
-  {
-    id: "1",
-    amount: 150000,
-    buyerName: "John Doe",
-    bankSender: "BCA",
-    createdAt: new Date().toISOString(),
-    status: 'paid',
-    note: "Monthly subscription",
-    merchantName: "My Store",
-    qrisNmid: "ID10023456789",
-    qrisRequestDate: new Date().toISOString(),
-    qrImageUrl: "https://example.com/qr.png"
-  },
-  {
-    id: "2",
-    amount: 75000,
-    buyerName: "Jane Smith",
-    bankSender: "Mandiri",
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    status: 'pending',
-    note: "Product purchase",
-    merchantName: "My Store",
-    qrisNmid: "ID10023456789",
-    qrisRequestDate: new Date(Date.now() - 86400000).toISOString(),
-    qrImageUrl: "https://example.com/qr2.png"
-  },
-  {
-    id: "3",
-    amount: 250000,
-    buyerName: "Robert Brown",
-    bankSender: "BNI",
-    createdAt: new Date(Date.now() - 172800000).toISOString(),
-    status: 'paid',
-    note: "Service fee",
-    merchantName: "My Store",
-    qrisNmid: "ID10023456789",
-    qrisRequestDate: new Date(Date.now() - 172800000).toISOString(),
-    qrImageUrl: "https://example.com/qr3.png"
+export const getAllPayments = async (): Promise<Payment[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching all payments:", error);
+      throw new Error("Failed to fetch payments");
+    }
+
+    // Transform database records to Payment objects
+    return data.map(item => ({
+      id: item.id,
+      amount: item.amount,
+      buyerName: item.buyer_name,
+      bankSender: item.bank_sender,
+      note: item.note,
+      createdAt: item.created_at,
+      status: item.status,
+      qrImageUrl: item.dynamic_qris,
+      formattedAmount: new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+      }).format(item.amount),
+    })) as Payment[];
+  } catch (error: any) {
+    console.error("Error fetching all payments:", error);
+    throw new Error(error.message || "Failed to fetch payments");
   }
-];
+};
 
 // Create a PaymentService object for easier imports in other files
 export const PaymentService = {
   createPayment,
   getPayment,
   updatePaymentStatus,
-  // Add mock functions for History page
-  getPayments: (): Payment[] => {
-    return mockPayments;
-  },
-  searchPayments: (query: string): Payment[] => {
-    return mockPayments.filter(payment => 
-      payment.buyerName?.toLowerCase().includes(query.toLowerCase()) ||
-      payment.note?.toLowerCase().includes(query.toLowerCase()) ||
-      payment.bankSender?.toLowerCase().includes(query.toLowerCase()) ||
-      payment.amount.toString().includes(query)
-    );
-  },
-  // Add getPaymentById for PaymentDetails.tsx
-  getPaymentById: (id: string): Payment => {
-    const payment = mockPayments.find(p => p.id === id);
-    if (payment) return payment;
-    
-    return {
-      id,
-      amount: 100000,
-      buyerName: "John Doe",
-      createdAt: new Date().toISOString(),
-      status: 'pending',
-      qrImageUrl: "https://example.com/qr.png",
-      merchantName: "Example Merchant",
-      qrisNmid: "12345",
-      qrisRequestDate: new Date().toISOString(),
-      bankSender: "BCA",
-      note: "Test payment"
-    };
+  getAllPayments,
+  searchPayments: (query: string): Promise<Payment[]> => {
+    return getAllPayments().then(payments => {
+      return payments.filter(payment => 
+        payment.buyerName?.toLowerCase().includes(query.toLowerCase()) ||
+        payment.note?.toLowerCase().includes(query.toLowerCase()) ||
+        payment.bankSender?.toLowerCase().includes(query.toLowerCase()) ||
+        payment.amount.toString().includes(query)
+      );
+    });
   }
 };

@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import Layout from "@/components/Layout";
 import { Search, ChevronRight, Clock, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -27,14 +28,31 @@ const formatCurrency = (amount: number) => {
 const History = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Fetch payments from service
-    if (searchQuery.trim()) {
-      setPayments(PaymentService.searchPayments(searchQuery));
-    } else {
-      setPayments(PaymentService.getPayments());
-    }
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        let results;
+        
+        if (searchQuery.trim()) {
+          results = await PaymentService.searchPayments(searchQuery);
+        } else {
+          results = await PaymentService.getAllPayments();
+        }
+        
+        setPayments(results);
+      } catch (error) {
+        console.error("Error fetching payments:", error);
+        toast.error("Failed to load payment history");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
   }, [searchQuery]);
 
   return (
@@ -57,7 +75,11 @@ const History = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {payments.length === 0 ? (
+            {loading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-violet-500"></div>
+              </div>
+            ) : payments.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-500">No transactions found</p>
                 {searchQuery && (
@@ -90,13 +112,13 @@ const History = () => {
                           )}
                         </div>
                         <div>
-                          <p className="font-medium">{formatCurrency(payment.amount)}</p>
+                          <p className="font-medium">{payment.formattedAmount || formatCurrency(payment.amount)}</p>
                           <p className="text-sm text-gray-500">
                             {payment.buyerName || payment.note || "No details"}
                           </p>
                           <p className="text-xs text-gray-400">
                             {payment.bankSender && <span className="font-medium">{payment.bankSender} • </span>}
-                            {format(new Date(payment.createdAt), "MMM d, yyyy h:mm a")}
+                            {payment.createdAt && format(new Date(payment.createdAt), "MMM d, yyyy h:mm a")}
                           </p>
                         </div>
                       </div>

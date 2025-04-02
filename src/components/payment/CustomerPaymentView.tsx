@@ -8,7 +8,8 @@ import QRCodeDisplay from "@/components/payment/QRCodeDisplay";
 import { Payment } from "@/types/payment";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { MessageSquareText } from "lucide-react";
+import { MessageSquareText, Settings } from "lucide-react";
+import SettingsDialog from "./SettingsDialog";
 
 interface CustomerPaymentViewProps {
   payment: Payment;
@@ -17,6 +18,7 @@ interface CustomerPaymentViewProps {
 const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
   const [adminWhatsApp, setAdminWhatsApp] = useState("628123456789");
   const [whatsAppMessage, setWhatsAppMessage] = useState("Halo admin, saya sudah transfer untuk pesanan");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     // Load WhatsApp settings
@@ -73,13 +75,23 @@ const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
                   Konfirmasi Sudah Bayar
                 </Button>
               </motion.div>
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                Klik tombol di atas untuk menghubungi admin via WhatsApp
-              </p>
+              <div className="flex justify-between items-center mt-2">
+                <p className="text-xs text-gray-500 text-center flex-1">
+                  Klik tombol di atas untuk menghubungi admin via WhatsApp
+                </p>
+                <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
+      
+      <SettingsDialog 
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+      />
     </motion.div>
   );
 };

@@ -1,0 +1,72 @@
+
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { Session, User } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+
+type AuthContextType = {
+  session: Session | null;
+  user: User | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Set up the auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        console.log('Auth state changed:', event);
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        
+        // Redirect based on auth state
+        if (event === 'SIGNED_IN') {
+          // Give a small delay to allow state to update
+          setTimeout(() => navigate('/'), 100);
+        } else if (event === 'SIGNED_OUT') {
+          setTimeout(() => navigate('/auth'), 100);
+        }
+      }
+    );
+
+    // Then check for an existing session
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const value = {
+    session,
+    user,
+    loading,
+    signOut,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

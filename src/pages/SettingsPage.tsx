@@ -251,52 +251,64 @@ const SettingsPage = () => {
 
       setUploadingQr(true);
 
-      // Create FormData untuk upload
-      const formData = new FormData();
-      formData.append('file', file);
+      // Baca file sebagai base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Image = reader.result as string;
+          
+          // Kirim ke API QR Code reader
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          const response = await fetch('https://api.qrserver.com/v1/read-qr-code/', {
+            method: 'POST',
+            body: formData
+          });
+          
+          const data = await response.json();
+          const qrisCode = data[0]?.symbol[0]?.data;
+          
+          if (!qrisCode || !qrisCode.startsWith('00020101')) {
+            throw new Error("Format QRIS tidak valid");
+          }
 
-      // Kirim ke API OCR QR Code
-      const response = await fetch('https://api.qrserver.com/v1/read-qr-code/', {
-        method: 'POST',
-        body: formData
-      });
-      
-      const data = await response.json();
-      const qrisCode = data[0]?.symbol[0]?.data;
-      
-      if (!qrisCode) {
-        throw new Error("Tidak dapat membaca kode QRIS dari gambar");
-      }
+          // Simpan ke database
+          const { error } = await supabase
+            .from('settings')
+            .upsert({ 
+              id: 1,
+              qris_code: qrisCode,
+              qris_image: base64Image
+            });
 
-      // Validasi format QRIS
-      const qrisData = parseQrisData(qrisCode);
-      if (!qrisData.nmid) {
-        throw new Error("Format kode QRIS tidak valid");
-      }
+          if (error) throw error;
 
-      // Simpan ke database
-      const { error } = await supabase
-        .from('settings')
-        .upsert({ 
-          id: 1,
-          qris_code: qrisCode,
-          merchant_name: qrisData.merchantName,
-          merchant_id: qrisData.nmid
-        });
+          setDefaultQrisCode(qrisCode);
+          setDefaultQrImage(base64Image);
+          
+          toast({
+            title: "Berhasil",
+            description: "QRIS berhasil diupload dan disimpan",
+          });
 
-      if (error) throw error;
+        } catch (error) {
+          console.error("Error processing QRIS:", error);
+          toast({
+            title: "Error",
+            description: "Gagal memproses QRIS. Pastikan gambar berisi kode QRIS yang valid.",
+            variant: "destructive"
+          });
+        }
+      };
 
-      setDefaultQrisCode(qrisCode);
-      toast({
-        title: "Berhasil",
-        description: "Kode QRIS berhasil disimpan sebagai default",
-      });
+      reader.readAsDataURL(file);
 
     } catch (error) {
       console.error("Error uploading QRIS:", error);
       toast({
         title: "Error",
-        description: "Gagal memproses kode QRIS. Pastikan gambar berisi QRIS yang valid.",
+        description: "Gagal upload QRIS. Silakan coba lagi.",
         variant: "destructive"
       });
     } finally {

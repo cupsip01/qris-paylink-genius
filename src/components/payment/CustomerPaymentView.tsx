@@ -48,31 +48,66 @@ const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
     try {
       setIsLoading(true);
       
-      // Ambil kode QRIS statis dari settings
+      // Ambil kode QRIS dari settings
       const { data: settings } = await supabase
         .from('settings')
-        .select('qris_code')
+        .select('qris_code, qris_image')
         .single();
       
       if (!settings?.qris_code) {
-        throw new Error("Belum ada kode QRIS default. Silakan upload di halaman Settings.");
+        throw new Error("Belum ada QRIS yang diupload");
       }
 
-      // Konversi ke QRIS dinamis dengan nominal
-      const dynamicQRIS = convertStaticToDynamicQRIS(
-        settings.qris_code,
-        payment.amount.toString()
-      );
+      // Ubah versi dari statis ke dinamis
+      const qrisWithoutCRC = settings.qris_code.slice(0, -4);
+      const qrisModified = qrisWithoutCRC.replace("010211", "010212");
+      
+      // Split berdasarkan kode negara merchant
+      const qrisParts = qrisModified.split("5802ID");
+      
+      // Tambahkan field nominal
+      const amountStr = payment.amount.toString();
+      const amountField = "54" + (amountStr.length < 10 ? "0" + amountStr.length : amountStr.length) + amountStr;
+      
+      // Gabungkan semua bagian
+      const combinedField = amountField + "5802ID";
+      const newQris = qrisParts[0] + combinedField + qrisParts[1];
+      
+      // Hitung CRC16
+      let crc = 0xFFFF;
+      for (let i = 0; i < newQris.length; i++) {
+        crc ^= newQris.charCodeAt(i) << 8;
+        for (let j = 0; j < 8; j++) {
+          crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1;
+        }
+      }
+      const crcHex = (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+      
+      // QRIS final dengan CRC
+      const dynamicQRIS = newQris + crcHex;
 
-      // Generate QR code image dari QRIS dinamis
-      const qrImageUrl = generateQRImageFromQRIS(dynamicQRIS);
-      setQrisImageUrl(qrImageUrl);
+      // Generate QR code image
+      const response = await fetch('https://api.qrserver.com/v1/create-qr-code/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `data=${encodeURIComponent(dynamicQRIS)}&size=300x300&margin=1&format=png`
+      });
+
+      if (!response.ok) {
+        throw new Error("Gagal generate QR code");
+      }
+
+      const imageBlob = await response.blob();
+      const imageUrl = URL.createObjectURL(imageBlob);
+      setQrisImageUrl(imageUrl);
 
     } catch (error) {
       console.error("Error generating dynamic QRIS:", error);
       toast({
         title: "Error",
-        description: "Gagal membuat QRIS dinamis. Pastikan sudah mengupload QRIS di Settings.",
+        description: "Gagal membuat QRIS. Pastikan sudah mengupload QRIS di Settings.",
         variant: "destructive"
       });
     } finally {

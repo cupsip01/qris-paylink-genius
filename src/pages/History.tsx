@@ -4,7 +4,10 @@ import { PaymentService } from "@/utils/paymentService";
 import { Payment } from "@/types/payment";
 import { 
   Card, 
-  CardContent
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +41,11 @@ const History = () => {
           results = await PaymentService.getAllPayments();
         }
         
+        // Sort payments by date (newest first)
+        results.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        
         setPayments(results);
       } catch (error) {
         console.error("Error fetching payments:", error);
@@ -51,7 +59,7 @@ const History = () => {
   }, [searchQuery]);
 
   return (
-   
+    <Layout>
       <div className="container mx-auto py-10 px-4">
         <div className="max-w-md mx-auto">
           <div className="text-center mb-8">
@@ -64,8 +72,12 @@ const History = () => {
           </div>
 
           <Card>
-            <CardContent className="p-4">
-              <div className="relative mb-4">
+            <CardHeader>
+              <CardTitle>Transaction History</CardTitle>
+              <CardDescription>
+                View all your generated QRIS payments
+              </CardDescription>
+              <div className="relative mt-2">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
                 <Input
                   placeholder="Search by name, amount, or note..."
@@ -74,7 +86,8 @@ const History = () => {
                   className="pl-9"
                 />
               </div>
-              
+            </CardHeader>
+            <CardContent>
               {loading ? (
                 <div className="flex justify-center items-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-violet-500"></div>
@@ -112,13 +125,12 @@ const History = () => {
                             )}
                           </div>
                           <div>
-                            <p className="font-medium">{payment.formattedAmount || formatCurrency(payment.amount)}</p>
+                            <p className="font-medium">{formatCurrency(payment.amount)}</p>
                             <p className="text-sm text-gray-500">
                               {payment.buyerName || payment.note || "No details"}
                             </p>
                             <p className="text-xs text-gray-400">
-                              {payment.bankSender && <span className="font-medium">{payment.bankSender} • </span>}
-                              {payment.createdAt && format(new Date(payment.createdAt), "MMM d, yyyy h:mm a")}
+                              {format(new Date(payment.createdAt), "MMM d, yyyy h:mm a")}
                             </p>
                           </div>
                         </div>
@@ -132,7 +144,7 @@ const History = () => {
           </Card>
         </div>
       </div>
-   
+    </Layout>
   );
 };
 

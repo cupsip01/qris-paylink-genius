@@ -16,6 +16,9 @@ const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
+  // Check current route to determine if we should show the title
+  const showTitle = location.pathname === "/";
+  
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -44,7 +47,7 @@ const Layout = ({ children }: LayoutProps) => {
               alt="QRIS Logo" 
               className="h-10 w-auto" 
             />
-            <span>QRIS Keuangan Pribadi</span>
+            {showTitle && <span>QRIS Keuangan Pribadi</span>}
           </Link>
           
           {user && (

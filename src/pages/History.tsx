@@ -51,7 +51,7 @@ const History = () => {
   }, [searchQuery]);
 
   return (
-    <Layout>
+   
       <div className="container mx-auto py-10 px-4">
         <div className="max-w-md mx-auto">
           <div className="text-center mb-8">
@@ -132,7 +132,7 @@ const History = () => {
           </Card>
         </div>
       </div>
-    </Layout>
+   
   );
 };
 

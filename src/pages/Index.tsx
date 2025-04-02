@@ -1,14 +1,12 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { QrCode, Settings } from "lucide-react";
+import { QrCode } from "lucide-react";
 import { createPayment } from "@/utils/paymentService";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
-import SettingsDialog from "@/components/payment/SettingsDialog";
 
 const Index = () => {
   const [name, setName] = useState("");
@@ -16,7 +14,6 @@ const Index = () => {
   const [loading, setLoading] = useState(false);
   const [bankSender, setBankSender] = useState("");
   const [note, setNote] = useState("");
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -76,14 +73,6 @@ const Index = () => {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               Create New Payment
             </h1>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="ml-2"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
           </div>
           <p className="text-gray-500 dark:text-gray-400 mt-2">
             Generate a QRIS code for your customer
@@ -141,11 +130,6 @@ const Index = () => {
             {loading ? "Creating..." : "Generate Payment"}
           </Button>
         </form>
-        
-        <SettingsDialog 
-          open={settingsOpen}
-          onOpenChange={setSettingsOpen}
-        />
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from "@/integrations/supabase/client";
 import { Payment } from "@/types/payment";
@@ -23,8 +22,10 @@ export const createPayment = async (data: {
     // If we have a default static QRIS, generate dynamic QRIS from it
     if (defaultStaticQris) {
       try {
+        console.log("Found static QRIS code:", defaultStaticQris);
         // Generate dynamic QRIS with the amount
         const dynamicQrisContent = convertStaticToDynamicQRIS(defaultStaticQris, data.amount);
+        console.log("Generated dynamic QRIS:", dynamicQrisContent);
         
         // Parse QRIS data to extract merchant info
         const qrisData = parseQrisData(defaultStaticQris);
@@ -33,6 +34,7 @@ export const createPayment = async (data: {
         
         // Generate QR code image URL from the dynamic QRIS
         qrImageUrl = generateQRImageFromQRIS(dynamicQrisContent);
+        console.log("Generated QR image URL:", qrImageUrl);
       } catch (err) {
         console.error("Error processing static QRIS:", err);
         // Fallback to default QR code generator
@@ -62,31 +64,38 @@ export const createPayment = async (data: {
     
     console.log("Creating payment record with QR:", qrImageUrl);
     
-    // Insert into Supabase
-    const { data: paymentRecord, error } = await supabase
-      .from('payments')
-      .insert([
-        {
-          id: paymentId,
-          buyer_name: data.buyer_name,
-          amount: data.amount,
-          bank_sender: data.bank_sender,
-          note: data.note,
-          dynamic_qris: qrImageUrl, 
-          status: 'pending',
-        },
-      ])
-      .select();
+    // Try to insert into Supabase if user is logged in
+    let paymentRecord = null;
+    try {
+      const { data: record, error } = await supabase
+        .from('payments')
+        .insert([
+          {
+            id: paymentId,
+            buyer_name: data.buyer_name,
+            amount: data.amount,
+            bank_sender: data.bank_sender,
+            note: data.note,
+            dynamic_qris: qrImageUrl, 
+            status: 'pending',
+          },
+        ])
+        .select();
 
-    if (error) {
-      console.error("Error creating payment:", error);
-      throw new Error("Failed to create payment in database");
+      if (error) {
+        console.error("Error creating payment in database:", error);
+        // Continue without storing in database if there's an error
+      } else {
+        paymentRecord = record;
+        console.log("Payment created successfully in database:", paymentRecord);
+      }
+    } catch (dbError) {
+      console.error("Database operation failed:", dbError);
+      // Continue without storing in database
     }
-
-    console.log("Payment created successfully:", paymentRecord);
-
-    // Return full payment object with all needed data for the UI
-    return {
+    
+    // Store payment in localStorage as a fallback
+    const paymentData = {
       id: paymentId,
       amount: data.amount,
       buyerName: data.buyer_name,
@@ -99,7 +108,20 @@ export const createPayment = async (data: {
       qrisNmid: qrisNmid,
       qrisRequestDate: currentDate,
       formattedAmount,
-    } as Payment;
+    };
+    
+    // Save to localStorage
+    try {
+      const existingPayments = JSON.parse(localStorage.getItem('payments') || '[]');
+      existingPayments.push(paymentData);
+      localStorage.setItem('payments', JSON.stringify(existingPayments));
+      console.log("Payment saved to localStorage");
+    } catch (localStorageError) {
+      console.error("Failed to save to localStorage:", localStorageError);
+    }
+
+    // Return full payment object with all needed data for the UI
+    return paymentData as Payment;
   } catch (error: any) {
     console.error("Error creating payment:", error);
     throw new Error(error.message || "Failed to create payment");
@@ -108,6 +130,20 @@ export const createPayment = async (data: {
 
 export const getPayment = async (id: string): Promise<Payment> => {
   try {
+    // First try to get payment from localStorage
+    try {
+      const localPayments = JSON.parse(localStorage.getItem('payments') || '[]');
+      const localPayment = localPayments.find((p: any) => p.id === id);
+      
+      if (localPayment) {
+        console.log("Payment found in localStorage:", localPayment);
+        return localPayment as Payment;
+      }
+    } catch (localStorageError) {
+      console.error("Error checking localStorage:", localStorageError);
+    }
+
+    // If not in localStorage, try from database
     const { data, error } = await supabase
       .from('payments')
       .select('*')
@@ -115,7 +151,7 @@ export const getPayment = async (id: string): Promise<Payment> => {
       .single();
 
     if (error) {
-      console.error("Error fetching payment:", error);
+      console.error("Error fetching payment from database:", error);
       throw new Error("Failed to fetch payment");
     }
 

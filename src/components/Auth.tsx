@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ export default function Auth() {
     setLoading(true);
     
     try {
+      console.log("Attempting signup with:", { email, password, fullName });
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -49,8 +50,18 @@ export default function Auth() {
         description: "Please check your email for verification instructions",
       });
       
-      setActiveTab("login");
+      if (data.user) {
+        // Wait a moment then switch to login tab
+        setTimeout(() => {
+          setActiveTab("login");
+          toast({
+            title: "Please sign in",
+            description: "You can now sign in with your credentials",
+          });
+        }, 1500);
+      }
     } catch (error: any) {
+      console.error("Signup error:", error);
       toast({
         title: "Registration failed",
         description: error.message || "An error occurred during registration",
@@ -76,6 +87,7 @@ export default function Auth() {
     setLoading(true);
     
     try {
+      console.log("Attempting login with:", { email });
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -90,6 +102,7 @@ export default function Auth() {
       
       // User will be redirected by the AuthProvider
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
         description: error.message || "Invalid email or password",

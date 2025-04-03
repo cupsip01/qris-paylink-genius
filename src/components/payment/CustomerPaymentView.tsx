@@ -1,181 +1,166 @@
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import PaymentHeader from "@/components/payment/PaymentHeader";
-import PaymentAmount from "@/components/payment/PaymentAmount";
-import PaymentInfo from "@/components/payment/PaymentInfo";
-import QRCodeDisplay from "@/components/payment/QRCodeDisplay";
-import PaymentActions from "@/components/payment/PaymentActions";
-import { Payment } from "@/types/payment";
-import { supabase } from "@/lib/supabaseClient";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import { Payment } from '@/types/payment';
+import { Button } from '@/components/ui/button';
+import { Copy, Share2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { WhatsappLogo } from '@phosphor-icons/react';
+import { SettingsService } from '@/utils/settingsService';
+import QRCodeDisplay from './QRCodeDisplay';
+import PaymentHeader from './PaymentHeader';
+import PaymentAmount from './PaymentAmount';
+import PaymentInfo from './PaymentInfo';
 
 interface CustomerPaymentViewProps {
   payment: Payment;
 }
 
-const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
-  const [adminWhatsApp, setAdminWhatsApp] = useState("628123456789");
-  const [whatsAppMessage, setWhatsAppMessage] = useState("Halo admin, saya sudah transfer untuk pesanan");
-  const [qrisImageUrl, setQrisImageUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [showDetails, setShowDetails] = useState(true);
-  const [merchantInfo, setMerchantInfo] = useState({
-    name: "Jedo Store",
-    nmid: "ID10243136428"
-  });
-
+export default function CustomerPaymentView({ payment }: CustomerPaymentViewProps) {
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [whatsappMessage, setWhatsappMessage] = useState('');
+  const [isClient, setIsClient] = useState(false);
+  
   useEffect(() => {
-    loadSettings();
-    generateDynamicQRIS();
-  }, [payment]);
-
-  const loadSettings = async () => {
-    try {
-      const { data: settings } = await supabase
-        .from('settings')
-        .select('qris_code, whatsapp_number, whatsapp_message')
-        .single();
-      
-      if (settings) {
-        if (settings.whatsapp_number) setAdminWhatsApp(settings.whatsapp_number);
-        if (settings.whatsapp_message) setWhatsAppMessage(settings.whatsapp_message);
+    // Mark that we're on the client side
+    setIsClient(true);
+    
+    // Load WhatsApp settings
+    async function loadWhatsAppSettings() {
+      try {
+        const settings = await SettingsService.getWhatsAppSettings();
+        setWhatsappNumber(settings.whatsappNumber);
+        setWhatsappMessage(settings.whatsappMessage);
+      } catch (error) {
+        console.error("Error loading WhatsApp settings", error);
       }
-    } catch (error) {
-      console.error("Error loading settings:", error);
     }
-  };
-
-  const generateDynamicQRIS = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Get QRIS code from settings
-      const { data: settings } = await supabase
-        .from('settings')
-        .select('qris_code, qris_image')
-        .single();
-      
-      if (!settings?.qris_code) {
-        throw new Error("No QRIS has been uploaded");
-      }
-
-      // Change from static to dynamic version
-      const qrisWithoutCRC = settings.qris_code.slice(0, -4);
-      const qrisModified = qrisWithoutCRC.replace("010211", "010212");
-      
-      // Split based on country code
-      const qrisParts = qrisModified.split("5802ID");
-      
-      // Add amount field
-      const amountStr = payment.amount.toString();
-      const amountField = "54" + (amountStr.length < 10 ? "0" + amountStr.length : amountStr.length) + amountStr;
-      
-      // Combine all parts
-      const combinedField = amountField + "5802ID";
-      const newQris = qrisParts[0] + combinedField + qrisParts[1];
-      
-      // Calculate CRC16
-      let crc = 0xFFFF;
-      for (let i = 0; i < newQris.length; i++) {
-        crc ^= newQris.charCodeAt(i) << 8;
-        for (let j = 0; j < 8; j++) {
-          crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1;
-        }
-      }
-      const crcHex = (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
-      
-      // Final QRIS with CRC
-      const dynamicQRIS = newQris + crcHex;
-
-      // Generate QR code image
-      const response = await fetch('https://api.qrserver.com/v1/create-qr-code/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `data=${encodeURIComponent(dynamicQRIS)}&size=300x300&margin=1&format=png`
+    
+    loadWhatsAppSettings();
+  }, []);
+  
+  const copyToClipboard = () => {
+    const paymentAmount = new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(payment.amount);
+    
+    const textToCopy = `QRIS Payment\nAmount: ${paymentAmount}\nID: ${payment.id}`;
+    
+    navigator.clipboard.writeText(textToCopy)
+      .then(() => {
+        toast({
+          title: "Copied to clipboard",
+          description: "Payment information has been copied",
+        });
+      })
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+        toast({
+          title: "Failed to copy",
+          description: "Could not copy to clipboard",
+          variant: "destructive",
+        });
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to generate QR code");
+  };
+  
+  const sharePayment = async () => {
+    const shareUrl = window.location.href;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'QRIS Payment',
+          text: `Please pay ${payment.formattedAmount} via QRIS`,
+          url: shareUrl,
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
       }
-
-      const imageBlob = await response.blob();
-      const imageUrl = URL.createObjectURL(imageBlob);
-      setQrisImageUrl(imageUrl);
-
-    } catch (error) {
-      console.error("Error generating dynamic QRIS:", error);
-      toast.error("Failed to create QRIS. Make sure you've uploaded a QRIS in Settings.");
-    } finally {
-      setIsLoading(false);
+    } else {
+      // Fallback for browsers that don't support the Web Share API
+      copyToClipboard();
+      toast({
+        title: "URL copied",
+        description: "Share link has been copied to clipboard",
+      });
     }
   };
-
+  
+  const openWhatsApp = () => {
+    if (!whatsappNumber) {
+      toast({
+        title: "WhatsApp not configured",
+        description: "The administrator has not set up WhatsApp integration",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const message = encodeURIComponent(
+      `${whatsappMessage}\n\nPayment ID: ${payment.id}\nAmount: ${payment.formattedAmount}`
+    );
+    
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
+    window.open(whatsappUrl, '_blank');
+  };
+  
   return (
-    <div className="pb-10">
-      <PaymentHeader createdAt={payment.createdAt} expiresInMinutes={5} />
+    <div className="bg-white rounded-lg shadow-md overflow-hidden max-w-md mx-auto">
+      <PaymentHeader 
+        merchantName={payment.merchantName} 
+        qrisNmid={payment.qrisNmid}
+        status={payment.status}
+      />
       
-      <div className="p-4">
-        <PaymentAmount amount={payment.amount} />
+      <div className="p-6">
+        <PaymentAmount amount={payment.formattedAmount} />
         
-        <PaymentInfo 
-          buyerName={payment.buyerName} 
-          bankSender={payment.bankSender}
-          note={payment.note}
-        />
+        <div className="mt-4 flex justify-center">
+          {/* QR Code Display */}
+          <QRCodeDisplay qrisImageUrl={payment.qrImageUrl} />
+        </div>
         
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          {isLoading ? (
-            <div className="w-full h-64 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-            </div>
-          ) : (
-            <>
-              <QRCodeDisplay 
-                qrImageUrl={qrisImageUrl} 
-                amount={payment.amount}
-                qrisNmid={merchantInfo.nmid}
-                merchantName={merchantInfo.name}
-              />
-              <div className="text-center my-2">
-                <button 
-                  onClick={() => setShowDetails(!showDetails)} 
-                  className="text-purple-600 text-sm font-medium"
-                >
-                  {showDetails ? "Hide details" : "Show details"}
-                </button>
-              </div>
-              
-              {showDetails && (
-                <motion.div 
-                  className="text-center text-sm text-gray-500 space-y-1"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                >
-                  <p>Merchant: <span className="font-medium">{merchantInfo.name}</span></p>
-                  <p>NMID: <span className="font-medium">{merchantInfo.nmid}</span></p>
-                  <p>Generated: <span className="font-medium">{new Date().toLocaleString()}</span></p>
-                </motion.div>
-              )}
-              
-              <PaymentActions 
-                payment={{...payment, qrImageUrl: qrisImageUrl}} 
-                adminWhatsApp={adminWhatsApp}
-                whatsAppMessage={whatsAppMessage}
-              />
-            </>
-          )}
-        </motion.div>
+        <div className="mt-6 space-y-4">
+          <PaymentInfo
+            buyerName={payment.buyerName}
+            bankSender={payment.bankSender}
+            note={payment.note}
+            id={payment.id}
+            createdAt={payment.createdAt}
+          />
+          
+          <div className="flex flex-col space-y-3">
+            <Button 
+              onClick={copyToClipboard} 
+              variant="outline"
+              className="w-full flex items-center justify-center"
+            >
+              <Copy size={16} className="mr-2" />
+              Copy Payment Info
+            </Button>
+            
+            <Button 
+              onClick={sharePayment} 
+              variant="outline"
+              className="w-full flex items-center justify-center"
+            >
+              <Share2 size={16} className="mr-2" />
+              Share Payment
+            </Button>
+            
+            {isClient && whatsappNumber && (
+              <Button 
+                onClick={openWhatsApp} 
+                className="w-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center"
+              >
+                <WhatsappLogo size={20} weight="fill" className="mr-2" />
+                Confirm via WhatsApp
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
-};
-
-export default CustomerPaymentView;
+}

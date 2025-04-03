@@ -1,128 +1,95 @@
 
-import React, { useState, useEffect } from "react";
-import Layout from "@/components/Layout";
+import { useState, useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Smartphone } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabaseClient";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import Layout from "@/components/Layout";
+import { SettingsService } from "@/utils/settingsService";
 
-const WASettings = () => {
-  const [adminWhatsApp, setAdminWhatsApp] = useState("628123456789");
-  const [whatsAppMessage, setWhatsAppMessage] = useState("Halo admin, saya sudah transfer untuk pesanan");
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+export default function WASettings() {
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [whatsappMessage, setWhatsappMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Load WhatsApp settings
-    const savedWhatsApp = localStorage.getItem('adminWhatsApp');
-    const savedMessage = localStorage.getItem('whatsAppMessage');
-    
-    if (savedWhatsApp) setAdminWhatsApp(savedWhatsApp);
-    if (savedMessage) setWhatsAppMessage(savedMessage);
+    async function loadSettings() {
+      try {
+        setIsLoading(true);
+        const settings = await SettingsService.getWhatsAppSettings();
+        setWhatsappNumber(settings.whatsappNumber);
+        setWhatsappMessage(settings.whatsappMessage);
+      } catch (error) {
+        console.error("Error loading WhatsApp settings:", error);
+        toast({
+          title: "Error loading settings",
+          description: "Failed to load WhatsApp settings",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
     
     loadSettings();
   }, []);
 
-  const loadSettings = async () => {
+  const handleSaveSettings = async () => {
     try {
-      const { data: settings } = await supabase
-        .from('settings')
-        .select('whatsapp_number, whatsapp_message')
-        .single();
-      
-      if (settings) {
-        if (settings.whatsapp_number) setAdminWhatsApp(settings.whatsapp_number);
-        if (settings.whatsapp_message) setWhatsAppMessage(settings.whatsapp_message);
-      }
-    } catch (error) {
-      console.error("Error loading settings:", error);
-    }
-  };
-
-  const saveSettings = async () => {
-    setLoading(true);
-    
-    try {
-      // Save to localStorage for quicker access
-      localStorage.setItem('adminWhatsApp', adminWhatsApp);
-      localStorage.setItem('whatsAppMessage', whatsAppMessage);
-      
-      // Save to Supabase as well
-      const { error } = await supabase
-        .from('settings')
-        .upsert({ 
-          id: 1,
-          whatsapp_number: adminWhatsApp,
-          whatsapp_message: whatsAppMessage
-        });
-      
-      if (error) throw error;
+      setIsLoading(true);
+      await SettingsService.updateWhatsAppSettings(whatsappNumber, whatsappMessage);
       
       toast({
         title: "Settings saved",
-        description: "Your WhatsApp settings have been updated successfully",
+        description: "Your WhatsApp settings have been saved successfully",
       });
     } catch (error) {
-      console.error("Error saving settings:", error);
+      console.error("Error saving WhatsApp settings:", error);
       toast({
-        title: "Failed to save settings",
-        description: "An error occurred while saving your WhatsApp settings",
+        title: "Error saving settings",
+        description: "Failed to save WhatsApp settings",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <Layout 
-      title="WA Settings"
-      subtitle="Configure WA custom message & number"
-      showBackButton
-    >
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm">
-        <h2 className="text-xl font-bold mb-1">WA Settings</h2>
-        <p className="text-gray-500 mb-6">Configure WA custom message & number</p>
-        
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Admin WhatsApp Number</label>
-            <div className="flex items-center">
-              <Smartphone className="h-4 w-4 mr-2 text-gray-500" />
-              <Input
-                value={adminWhatsApp}
-                onChange={(e) => setAdminWhatsApp(e.target.value)}
-                placeholder="628123456789"
-              />
-            </div>
-            <p className="text-xs text-gray-500">
-              Include country code without + (e.g., 628123456789)
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">WhatsApp Message Template</label>
-            <Input
-              value={whatsAppMessage}
-              onChange={(e) => setWhatsAppMessage(e.target.value)}
-              placeholder="Halo admin, saya sudah transfer untuk pesanan"
-            />
-          </div>
+    <Layout title="WhatsApp Settings" subtitle="Configure your WhatsApp integration">
+      <div className="space-y-6 max-w-lg mx-auto">
+        <div className="space-y-2">
+          <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+          <Input
+            id="whatsappNumber"
+            placeholder="e.g., 628123456789"
+            value={whatsappNumber}
+            onChange={(e) => setWhatsappNumber(e.target.value)}
+          />
+          <p className="text-sm text-gray-500">
+            Enter your WhatsApp number with country code (e.g., 628123456789).
+          </p>
         </div>
-      </div>
-      
-      <div className="mt-6">
-        <Button
-          onClick={saveSettings}
-          disabled={loading}
-          className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-        >
-          {loading ? "Saving..." : "Save Settings"}
+
+        <div className="space-y-2">
+          <Label htmlFor="whatsappMessage">Default Message Template</Label>
+          <Textarea
+            id="whatsappMessage"
+            placeholder="Enter the default message template for WhatsApp"
+            value={whatsappMessage}
+            onChange={(e) => setWhatsappMessage(e.target.value)}
+            rows={4}
+          />
+          <p className="text-sm text-gray-500">
+            This message will be pre-filled when customers click the WhatsApp button.
+          </p>
+        </div>
+
+        <Button onClick={handleSaveSettings} disabled={isLoading}>
+          {isLoading ? "Saving..." : "Save Settings"}
         </Button>
       </div>
     </Layout>
   );
-};
-
-export default WASettings;
+}

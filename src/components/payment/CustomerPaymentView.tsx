@@ -4,7 +4,6 @@ import { Payment } from '@/types/payment';
 import { Button } from '@/components/ui/button';
 import { Copy, Share2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { WhatsappLogo } from '@phosphor-icons/react';
 import { SettingsService } from '@/utils/settingsService';
 import QRCodeDisplay from './QRCodeDisplay';
 import PaymentHeader from './PaymentHeader';
@@ -111,14 +110,20 @@ export default function CustomerPaymentView({ payment }: CustomerPaymentViewProp
         merchantName={payment.merchantName} 
         qrisNmid={payment.qrisNmid}
         status={payment.status}
+        createdAt={payment.createdAt}
       />
       
       <div className="p-6">
-        <PaymentAmount amount={payment.formattedAmount} />
+        <PaymentAmount amount={payment.amount} />
         
         <div className="mt-4 flex justify-center">
           {/* QR Code Display */}
-          <QRCodeDisplay qrisImageUrl={payment.qrImageUrl} />
+          <QRCodeDisplay 
+            qrImageUrl={payment.qrImageUrl}
+            qrisNmid={payment.qrisNmid}
+            merchantName={payment.merchantName}
+            qrisRequestDate={payment.qrisRequestDate}
+          />
         </div>
         
         <div className="mt-6 space-y-4">
@@ -154,7 +159,10 @@ export default function CustomerPaymentView({ payment }: CustomerPaymentViewProp
                 onClick={openWhatsApp} 
                 className="w-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center"
               >
-                <WhatsappLogo size={20} weight="fill" className="mr-2" />
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                  <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"></path>
+                  <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1Zm0 0a5 5 0 0 0 5 5m0 0a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1h1Z"></path>
+                </svg>
                 Confirm via WhatsApp
               </Button>
             )}

@@ -5,11 +5,14 @@ import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface PaymentHeaderProps {
-  createdAt: string;
+  createdAt?: string;
   expiresInMinutes?: number;
+  merchantName?: string;
+  qrisNmid?: string;
+  status?: 'pending' | 'paid';
 }
 
-const PaymentHeader = ({ createdAt, expiresInMinutes }: PaymentHeaderProps) => {
+const PaymentHeader = ({ createdAt, expiresInMinutes, merchantName, qrisNmid, status }: PaymentHeaderProps) => {
   const navigate = useNavigate();
   
   const handleBack = () => {
@@ -34,6 +37,19 @@ const PaymentHeader = ({ createdAt, expiresInMinutes }: PaymentHeaderProps) => {
       
       <div className="flex flex-col items-center justify-center">
         <h2 className="text-2xl font-bold font-poppins">Payment Details</h2>
+        {status && (
+          <span className={`mt-1 px-3 py-1 rounded-full text-xs font-medium ${
+            status === 'paid' ? 'bg-green-500' : 'bg-yellow-500'
+          }`}>
+            {status === 'paid' ? 'Paid' : 'Pending'}
+          </span>
+        )}
+        {merchantName && (
+          <p className="text-sm opacity-90 mt-1">{merchantName}</p>
+        )}
+        {qrisNmid && (
+          <p className="text-xs opacity-75 mt-0.5">ID: {qrisNmid}</p>
+        )}
         {expiresInMinutes && (
           <motion.p 
             className="text-sm opacity-90 mt-1 font-medium"

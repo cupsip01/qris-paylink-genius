@@ -2,19 +2,31 @@
 import { motion } from "framer-motion";
 
 interface PaymentAmountProps {
-  amount: number;
+  amount: number | string;
 }
 
-const formatCurrency = (amount: number) => {
+// Helper function to convert string to number if needed
+const parseAmount = (amount: number | string): number => {
+  if (typeof amount === 'string') {
+    // Remove currency symbols and commas
+    const cleanedAmount = amount.replace(/[^\d.]/g, '');
+    return parseFloat(cleanedAmount) || 0;
+  }
+  return amount;
+};
+
+const formatCurrency = (amount: number | string): string => {
+  const numericAmount = parseAmount(amount);
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
-  }).format(amount);
+  }).format(numericAmount);
 };
 
 const PaymentAmount = ({ amount }: PaymentAmountProps) => {
-  const formattedAmount = formatCurrency(amount).replace(/[^\d,]/g, '');
+  const numericAmount = parseAmount(amount);
+  const formattedAmount = formatCurrency(numericAmount).replace(/[^\d,]/g, '');
   
   return (
     <motion.div 

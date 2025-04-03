@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 interface QRCodeDisplayProps {
   qrImageUrl?: string;
-  amount: number;
+  amount?: number;
   qrisNmid?: string;
   merchantName?: string;
   qrisRequestDate?: string;

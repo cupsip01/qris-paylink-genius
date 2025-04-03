@@ -1,15 +1,18 @@
 
 import { motion } from "framer-motion";
-import { User, CreditCard, MessageSquare } from "lucide-react";
+import { User, CreditCard, MessageSquare, Calendar, Hash } from "lucide-react";
+import { format } from "date-fns";
 
 interface PaymentInfoProps {
   buyerName?: string;
   bankSender?: string;
   note?: string;
+  id?: string;
+  createdAt?: string;
 }
 
-const PaymentInfo = ({ buyerName, bankSender, note }: PaymentInfoProps) => {
-  if (!buyerName && !bankSender && !note) return null;
+const PaymentInfo = ({ buyerName, bankSender, note, id, createdAt }: PaymentInfoProps) => {
+  if (!buyerName && !bankSender && !note && !id && !createdAt) return null;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -59,13 +62,37 @@ const PaymentInfo = ({ buyerName, bankSender, note }: PaymentInfoProps) => {
       )}
       
       {note && (
-        <motion.div className="flex items-start" variants={itemVariants}>
+        <motion.div className="flex items-start mb-3" variants={itemVariants}>
           <div className="bg-amber-100 p-3 rounded-full mr-3 mt-0.5">
             <MessageSquare className="h-5 w-5 text-amber-600" />
           </div>
           <div>
             <p className="text-xs text-gray-500 font-medium">Notes</p>
             <p className="text-sm">{note}</p>
+          </div>
+        </motion.div>
+      )}
+      
+      {id && (
+        <motion.div className="flex items-center mb-3" variants={itemVariants}>
+          <div className="bg-gray-100 p-3 rounded-full mr-3">
+            <Hash className="h-5 w-5 text-gray-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 font-medium">Payment ID</p>
+            <p className="text-sm font-mono">{id}</p>
+          </div>
+        </motion.div>
+      )}
+      
+      {createdAt && (
+        <motion.div className="flex items-center" variants={itemVariants}>
+          <div className="bg-green-100 p-3 rounded-full mr-3">
+            <Calendar className="h-5 w-5 text-green-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 font-medium">Created On</p>
+            <p className="text-sm">{format(new Date(createdAt), "dd MMM yyyy HH:mm")}</p>
           </div>
         </motion.div>
       )}

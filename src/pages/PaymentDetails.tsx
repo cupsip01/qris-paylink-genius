@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import PaymentHeader from "@/components/payment/PaymentHeader";
@@ -8,107 +9,91 @@ import { Payment } from "@/types/payment";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { MessageSquareText, Settings } from "lucide-react";
-import SettingsDialog from "./SettingsDialog";
+import SettingsDialog from "@/components/payment/SettingsDialog";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { format } from "date-fns";
+import CustomerPaymentView from "@/components/payment/CustomerPaymentView";
+import { useParams } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient";
+import { useToast } from "@/hooks/use-toast";
 
-interface CustomerPaymentViewProps {
-  payment: Payment;
-}
-
-const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
-  const [adminWhatsApp, setAdminWhatsApp] = useState("628123456789");
-  const [whatsAppMessage, setWhatsAppMessage] = useState("Halo admin, saya sudah transfer untuk pesanan");
+const PaymentDetails = () => {
+  const { id } = useParams<{ id: string }>();
+  const [payment, setPayment] = useState<Payment | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Load WhatsApp settings
-    const savedWhatsApp = localStorage.getItem('adminWhatsApp');
-    const savedMessage = localStorage.getItem('whatsAppMessage');
-    
-    if (savedWhatsApp) setAdminWhatsApp(savedWhatsApp);
-    if (savedMessage) setWhatsAppMessage(savedMessage);
-  }, []);
+    if (id) {
+      fetchPayment(id);
+    }
+  }, [id]);
 
-  const handleWhatsAppConfirmation = () => {
-    const message = `${whatsAppMessage} ${payment.id}`;
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/${adminWhatsApp}?text=${encodedMessage}`, '_blank');
+  const fetchPayment = async (paymentId: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('id', paymentId)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data) {
+        // Format for display in Indonesian Rupiah
+        const formattedAmount = new Intl.NumberFormat('id-ID', {
+          style: 'currency',
+          currency: 'IDR',
+          minimumFractionDigits: 0,
+        }).format(data.amount);
+
+        const paymentData: Payment = {
+          id: data.id,
+          amount: data.amount,
+          buyerName: data.buyer_name || "",
+          bankSender: data.bank_sender || "",
+          note: data.note || "",
+          status: data.status || "pending",
+          createdAt: data.created_at,
+          qrImageUrl: data.dynamic_qris,
+          formattedAmount
+        };
+        
+        setPayment(paymentData);
+      }
+    } catch (error) {
+      console.error("Error fetching payment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load payment details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="space-y-6">
-      <PaymentHeader createdAt={payment.createdAt} />
-      
-      <PaymentAmount amount={payment.amount} />
-      
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>QRIS Code</CardTitle>
-          </div>
-          <CardDescription>
-            Scan this QR code to pay
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center">
-          <div className="relative">
-            <img 
-              src={payment.qrImageUrl} 
-              alt="QRIS Code"
-              className="w-64 h-64 object-contain"
-            />
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500">Status</span>
-            <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-              payment.status === "paid" 
-                ? "bg-green-100 text-green-700" 
-                : "bg-amber-100 text-amber-700"
-            }`}>
-              {payment.status === "paid" ? "Paid" : "Pending"}
-            </div>
-          </div>
-          
-          {payment.buyerName && (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">Buyer Name</span>
-              <span className="text-sm font-medium">{payment.buyerName}</span>
-            </div>
-          )}
-          
-          {payment.bankSender && (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">Bank/Sender</span>
-              <span className="text-sm font-medium">{payment.bankSender}</span>
-            </div>
-          )}
-          
-          {payment.note && (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">Note</span>
-              <span className="text-sm font-medium">{payment.note}</span>
-            </div>
-          )}
-          
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500">Created</span>
-            <span className="text-sm font-medium">
-              {format(new Date(payment.createdAt), "MMM d, yyyy h:mm a")}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  if (!payment) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Payment Not Found</h1>
+        <p className="text-gray-500 mb-6">The payment you're looking for doesn't exist or has been removed.</p>
+        <Button onClick={() => window.history.back()}>Go Back</Button>
+      </div>
+    );
+  }
+
+  return <CustomerPaymentView payment={payment} />;
 };
 
-export default CustomerPaymentView;
+export default PaymentDetails;

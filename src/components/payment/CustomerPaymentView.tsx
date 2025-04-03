@@ -166,7 +166,7 @@ const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
               )}
               
               <PaymentActions 
-                payment={{...payment, qrImageUrl}} 
+                payment={{...payment, qrImageUrl: qrisImageUrl}} 
                 adminWhatsApp={adminWhatsApp}
                 whatsAppMessage={whatsAppMessage}
               />

@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from "@/integrations/supabase/client";
 import { Payment } from "@/types/payment";
@@ -189,15 +190,31 @@ export const getPayment = async (id: string): Promise<Payment> => {
 
 export const updatePaymentStatus = async (id: string, status: string) => {
   try {
+    // First update in Supabase
     const { data, error } = await supabase
       .from('payments')
       .update({ status })
       .eq('id', id)
-      .select()
+      .select();
 
     if (error) {
-      console.error("Error updating payment status:", error);
-      throw new Error("Failed to update payment status");
+      console.error("Error updating payment status in database:", error);
+    }
+    
+    // Also update in localStorage as a fallback
+    try {
+      const existingPayments = JSON.parse(localStorage.getItem('payments') || '[]');
+      const updatedPayments = existingPayments.map((payment: any) => {
+        if (payment.id === id) {
+          return { ...payment, status };
+        }
+        return payment;
+      });
+      
+      localStorage.setItem('payments', JSON.stringify(updatedPayments));
+      console.log("Payment status updated in localStorage");
+    } catch (localStorageError) {
+      console.error("Failed to update payment status in localStorage:", localStorageError);
     }
 
     return data;
@@ -209,32 +226,73 @@ export const updatePaymentStatus = async (id: string, status: string) => {
 
 export const getAllPayments = async (): Promise<Payment[]> => {
   try {
+    // Try to get payments from Supabase
     const { data, error } = await supabase
       .from('payments')
       .select('*')
       .order('created_at', { ascending: false });
 
+    let payments = [];
+    
     if (error) {
-      console.error("Error fetching all payments:", error);
-      throw new Error("Failed to fetch payments");
+      console.error("Error fetching payments from database:", error);
+      // Fall back to localStorage if there's a database error
+    } else if (data && data.length > 0) {
+      // Transform database records to Payment objects
+      payments = data.map(item => ({
+        id: item.id,
+        amount: item.amount,
+        buyerName: item.buyer_name,
+        bankSender: item.bank_sender,
+        note: item.note,
+        createdAt: item.created_at,
+        status: item.status,
+        qrImageUrl: item.dynamic_qris,
+        formattedAmount: new Intl.NumberFormat('id-ID', {
+          style: 'currency',
+          currency: 'IDR',
+          minimumFractionDigits: 0,
+        }).format(item.amount),
+      }));
+      
+      console.log("Fetched payments from database:", payments.length);
     }
-
-    // Transform database records to Payment objects
-    return data.map(item => ({
-      id: item.id,
-      amount: item.amount,
-      buyerName: item.buyer_name,
-      bankSender: item.bank_sender,
-      note: item.note,
-      createdAt: item.created_at,
-      status: item.status,
-      qrImageUrl: item.dynamic_qris,
-      formattedAmount: new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0,
-      }).format(item.amount),
-    })) as Payment[];
+    
+    // If no payments from database or error, try localStorage
+    if (payments.length === 0) {
+      try {
+        const localPayments = JSON.parse(localStorage.getItem('payments') || '[]');
+        if (localPayments.length > 0) {
+          payments = localPayments;
+          console.log("Fetched payments from localStorage:", payments.length);
+        }
+      } catch (localStorageError) {
+        console.error("Error fetching payments from localStorage:", localStorageError);
+      }
+    }
+    
+    // Merge local and database payments to ensure we have everything
+    // This is a basic approach - a more sophisticated one would check for duplicates
+    try {
+      const localPayments = JSON.parse(localStorage.getItem('payments') || '[]');
+      
+      // Find payments in localStorage that aren't in the database results
+      const paymentIds = new Set(payments.map(p => p.id));
+      const uniqueLocalPayments = localPayments.filter((p: any) => !paymentIds.has(p.id));
+      
+      // Add unique local payments to the results
+      if (uniqueLocalPayments.length > 0) {
+        payments = [...payments, ...uniqueLocalPayments];
+        console.log(`Added ${uniqueLocalPayments.length} unique payments from localStorage`);
+      }
+    } catch (e) {
+      console.error("Error merging payments:", e);
+    }
+    
+    // Sort by date, most recent first
+    return payments.sort((a: Payment, b: Payment) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    ) as Payment[];
   } catch (error: any) {
     console.error("Error fetching all payments:", error);
     throw new Error(error.message || "Failed to fetch payments");

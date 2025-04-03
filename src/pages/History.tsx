@@ -3,17 +3,39 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Input } from "@/components/ui/input";
-import { formatCurrency } from "@/components/payment/PaymentAmount";
 import { format } from "date-fns";
 import { ChevronRight, Search, SlidersHorizontal } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
 import { Payment } from "@/types/payment";
+import { PaymentService } from "@/utils/paymentService";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/context/AuthProvider";
 
 const History = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const { toast } = useToast();
+  const { user } = useAuth();
 
+  // Fetch payments when component mounts
   useEffect(() => {
     fetchPayments();
   }, []);
@@ -21,41 +43,52 @@ const History = () => {
   const fetchPayments = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('payments')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      if (data) {
-        const formattedPayments = data.map((payment: any) => ({
-          id: payment.id,
-          amount: payment.amount,
-          buyerName: payment.buyer_name || "",
-          bankSender: payment.bank_sender || "",
-          note: payment.note || "",
-          status: payment.status || "pending",
-          createdAt: payment.created_at,
-          formattedAmount: formatCurrency(payment.amount)
-        }));
-        setPayments(formattedPayments);
-      }
+      const data = await PaymentService.getAllPayments();
+      setPayments(data);
     } catch (error) {
       console.error("Error fetching payments:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch payment history",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  const handleUpdateStatus = async (id: string, status: 'pending' | 'paid') => {
+    try {
+      await PaymentService.updatePaymentStatus(id, status);
+      toast({
+        title: "Success",
+        description: `Payment status updated to ${status}`,
+      });
+      // Refresh payments after update
+      fetchPayments();
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update payment status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Filter payments based on search query and status filter
   const filteredPayments = payments.filter(payment => {
     const query = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = 
       (payment.buyerName?.toLowerCase().includes(query)) ||
       (payment.bankSender?.toLowerCase().includes(query)) ||
       (payment.note?.toLowerCase().includes(query)) ||
-      (payment.amount.toString().includes(query))
-    );
+      (payment.amount.toString().includes(query));
+    
+    // Apply status filter if not "all"
+    const matchesStatus = statusFilter === "all" ? true : payment.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
   });
 
   return (
@@ -70,48 +103,152 @@ const History = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <button className="bg-white p-2 rounded-md border">
-          <SlidersHorizontal className="h-5 w-5 text-gray-600" />
-        </button>
+        <DropdownMenu open={filterOpen} onOpenChange={setFilterOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="p-2 h-10 w-10">
+              <SlidersHorizontal className="h-5 w-5 text-gray-600" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem 
+              onClick={() => setStatusFilter("all")}
+              className={statusFilter === "all" ? "bg-accent text-accent-foreground" : ""}
+            >
+              All Status
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => setStatusFilter("pending")}
+              className={statusFilter === "pending" ? "bg-accent text-accent-foreground" : ""}
+            >
+              Pending
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => setStatusFilter("paid")}
+              className={statusFilter === "paid" ? "bg-accent text-accent-foreground" : ""}
+            >
+              Paid
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       
-      <div className="space-y-3">
-        {loading ? (
-          <div className="text-center py-10">
-            <div className="animate-spin inline-block w-6 h-6 border-2 border-current border-t-transparent rounded-full text-purple-600"></div>
-            <p className="mt-2 text-gray-500">Loading payment history...</p>
-          </div>
-        ) : filteredPayments.length > 0 ? (
-          filteredPayments.map((payment) => (
-            <Link
-              key={payment.id}
-              to={`/payment/${payment.id}`}
-              className="flex items-center justify-between p-4 bg-white rounded-lg border hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center">
-                <div className="bg-amber-100 w-10 h-10 rounded-full flex items-center justify-center mr-3">
-                  <span className="text-amber-600">₹</span>
+      {user ? (
+        <div className="space-y-4">
+          <h2 className="text-lg font-medium">Admin View</h2>
+          {loading ? (
+            <div className="text-center py-10">
+              <div className="animate-spin inline-block w-6 h-6 border-2 border-current border-t-transparent rounded-full text-purple-600"></div>
+              <p className="mt-2 text-gray-500">Loading payment history...</p>
+            </div>
+          ) : filteredPayments.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPayments.map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell>{format(new Date(payment.createdAt), "MMM d, yyyy HH:mm")}</TableCell>
+                      <TableCell>
+                        {payment.buyerName || "No Name"}
+                        {payment.note && <p className="text-xs text-gray-500">{payment.note}</p>}
+                      </TableCell>
+                      <TableCell>{payment.formattedAmount}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          className={payment.status === 'paid' ? 'bg-green-500' : 'bg-yellow-500'}
+                        >
+                          {payment.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Link to={`/payment/${payment.id}`}>
+                            <Button variant="outline" size="sm">View</Button>
+                          </Link>
+                          {payment.status === 'pending' ? (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="bg-green-50 hover:bg-green-100 text-green-700"
+                              onClick={() => handleUpdateStatus(payment.id, 'paid')}
+                            >
+                              Mark Paid
+                            </Button>
+                          ) : (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="bg-yellow-50 hover:bg-yellow-100 text-yellow-700"
+                              onClick={() => handleUpdateStatus(payment.id, 'pending')}
+                            >
+                              Mark Pending
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-gray-500">No payments found.</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {loading ? (
+            <div className="text-center py-10">
+              <div className="animate-spin inline-block w-6 h-6 border-2 border-current border-t-transparent rounded-full text-purple-600"></div>
+              <p className="mt-2 text-gray-500">Loading payment history...</p>
+            </div>
+          ) : filteredPayments.length > 0 ? (
+            filteredPayments.map((payment) => (
+              <Link
+                key={payment.id}
+                to={`/payment/${payment.id}`}
+                className="flex items-center justify-between p-4 bg-white rounded-lg border hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center">
+                  <div className="bg-amber-100 w-10 h-10 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-amber-600">₹</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">
+                      {payment.buyerName || (payment.note ? payment.note.slice(0, 20) : "Rp " + payment.amount.toLocaleString())}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {format(new Date(payment.createdAt), "MMM d, yyyy HH:mm")}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">
-                    {payment.buyerName || (payment.note ? payment.note.slice(0, 20) : "Rp " + payment.amount.toLocaleString())}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {format(new Date(payment.createdAt), "MMM d, yyyy HH:mm")}
-                  </p>
+                <div className="flex items-center">
+                  <Badge 
+                    className={payment.status === 'paid' ? 'bg-green-500' : 'bg-yellow-500'}
+                  >
+                    {payment.status}
+                  </Badge>
+                  <ChevronRight className="h-5 w-5 text-gray-400 ml-2" />
                 </div>
-              </div>
-              <div className="flex items-center">
-                <ChevronRight className="h-5 w-5 text-gray-400" />
-              </div>
-            </Link>
-          ))
-        ) : (
-          <div className="text-center py-10">
-            <p className="text-gray-500">No payments found.</p>
-          </div>
-        )}
-      </div>
+              </Link>
+            ))
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-gray-500">No payments found.</p>
+            </div>
+          )}
+        </div>
+      )}
     </Layout>
   );
 };

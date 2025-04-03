@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { Payment } from "@/types/payment";
 import CustomerPaymentView from "@/components/payment/CustomerPaymentView";
 import { useQuery } from "@tanstack/react-query";
-import { getPayment } from "@/utils/paymentService";
+import { PaymentService } from "@/utils/paymentService";
 import { Loader2 } from "lucide-react";
 
 export default function PaymentDetails() {
@@ -16,7 +16,7 @@ export default function PaymentDetails() {
     refetch
   } = useQuery({
     queryKey: ['payment', id],
-    queryFn: () => id ? getPayment(id) : Promise.reject("No payment ID"),
+    queryFn: () => id ? PaymentService.getPayment(id) : Promise.reject("No payment ID"),
     enabled: Boolean(id),
     refetchInterval: (data) => {
       // Refetch every 5 seconds if payment is pending, otherwise don't refetch

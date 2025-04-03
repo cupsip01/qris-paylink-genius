@@ -6,13 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import Layout from "@/components/Layout";
-import { QrCode, Upload } from "lucide-react";
+import { QrCode, Upload, Loader2 } from "lucide-react";
 import { SettingsService } from "@/utils/settingsService";
+import { extractQRCodeFromImage, isValidQRISCode } from "@/utils/qrScannerUtils";
 
 export default function QRISSettings() {
   const [qrisCode, setQrisCode] = useState("");
   const [qrisImage, setQrisImage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     async function loadSettings() {
@@ -65,12 +67,50 @@ export default function QRISSettings() {
     }
   };
 
-  const handleQRImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleQRImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setQrisImage(reader.result as string);
+      reader.onloadend = async () => {
+        const imageDataUrl = reader.result as string;
+        setQrisImage(imageDataUrl);
+        
+        // Extract QRIS code from the uploaded image
+        try {
+          setIsScanning(true);
+          const extractedCode = await extractQRCodeFromImage(imageDataUrl);
+          
+          if (extractedCode) {
+            if (isValidQRISCode(extractedCode)) {
+              setQrisCode(extractedCode);
+              toast({
+                title: "QRIS Code detected",
+                description: "The QRIS code was automatically extracted from the image",
+              });
+            } else {
+              toast({
+                title: "Invalid QRIS Code",
+                description: "The detected QR code doesn't appear to be a valid QRIS code",
+                variant: "destructive",
+              });
+            }
+          } else {
+            toast({
+              title: "No QRIS Code detected",
+              description: "Could not find a valid QRIS code in the image",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error("Error scanning QR code:", error);
+          toast({
+            title: "Error scanning QR code",
+            description: "Failed to scan QR code from the image",
+            variant: "destructive",
+          });
+        } finally {
+          setIsScanning(false);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -90,12 +130,12 @@ export default function QRISSettings() {
           />
           <p className="text-sm text-gray-500">
             This code will be used to generate dynamic QRIS codes for payments.
-            Make sure it's a valid static QRIS code.
+            Upload a QR image below to automatically extract this code.
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label>Default QR Image (optional)</Label>
+          <Label>Default QR Image</Label>
           <div className="flex flex-col items-center border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
             {qrisImage ? (
               <div className="space-y-4 flex flex-col items-center">
@@ -106,12 +146,21 @@ export default function QRISSettings() {
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => document.getElementById("qris-image-upload")?.click()}
-                >
-                  Change Image
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => document.getElementById("qris-image-upload")?.click()}
+                    disabled={isScanning}
+                  >
+                    Change Image
+                  </Button>
+                  {isScanning && (
+                    <div className="flex items-center text-sm text-purple-600">
+                      <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                      Scanning...
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="space-y-4 flex flex-col items-center">
@@ -122,10 +171,17 @@ export default function QRISSettings() {
                   <Button
                     variant="outline"
                     onClick={() => document.getElementById("qris-image-upload")?.click()}
+                    disabled={isScanning}
                   >
                     <Upload className="w-4 h-4 mr-2" />
                     Upload QRIS Image
                   </Button>
+                  {isScanning && (
+                    <div className="flex items-center mt-2 text-sm text-purple-600">
+                      <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                      Scanning QR code...
+                    </div>
+                  )}
                   <p className="text-sm text-gray-500 mt-2">
                     PNG, JPG or GIF up to 2MB
                   </p>
@@ -138,12 +194,24 @@ export default function QRISSettings() {
               accept="image/*"
               onChange={handleQRImageUpload}
               className="hidden"
+              disabled={isScanning}
             />
           </div>
         </div>
 
-        <Button onClick={handleSaveSettings} disabled={isLoading}>
-          {isLoading ? "Saving..." : "Save Settings"}
+        <Button 
+          onClick={handleSaveSettings} 
+          disabled={isLoading || isScanning}
+          className="w-full"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="animate-spin mr-2 h-4 w-4" />
+              Saving...
+            </>
+          ) : (
+            "Save Settings"
+          )}
         </Button>
       </div>
     </Layout>

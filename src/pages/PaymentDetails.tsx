@@ -1,5 +1,4 @@
 
-import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Payment } from "@/types/payment";
 import CustomerPaymentView from "@/components/payment/CustomerPaymentView";

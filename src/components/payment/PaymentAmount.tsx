@@ -14,6 +14,8 @@ const formatCurrency = (amount: number) => {
 };
 
 const PaymentAmount = ({ amount }: PaymentAmountProps) => {
+  const formattedAmount = formatCurrency(amount).replace(/[^\d,]/g, '');
+  
   return (
     <motion.div 
       className="text-center mb-6 py-4"
@@ -23,7 +25,7 @@ const PaymentAmount = ({ amount }: PaymentAmountProps) => {
     >
       <span className="text-gray-500 text-sm block mb-1 font-medium">Amount to Pay</span>
       <motion.p 
-        className="text-4xl font-bold bg-gradient-to-r from-violet-700 to-indigo-700 text-transparent bg-clip-text font-poppins"
+        className="text-4xl font-bold text-purple-600"
         initial={{ scale: 0.9 }}
         animate={{ scale: 1 }}
         transition={{ 
@@ -33,9 +35,9 @@ const PaymentAmount = ({ amount }: PaymentAmountProps) => {
           delay: 0.3
         }}
       >
-        {formatCurrency(amount)}
+        Rp {formattedAmount}
       </motion.p>
-      <div className="h-1 w-24 bg-gradient-to-r from-violet-500 to-indigo-500 mx-auto mt-3 rounded-full"></div>
+      <div className="h-1 w-24 bg-purple-500 mx-auto mt-3 rounded-full"></div>
     </motion.div>
   );
 };

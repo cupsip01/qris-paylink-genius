@@ -1,17 +1,14 @@
+
 import { useEffect, useState } from "react";
-import { MessageSquareText } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 import PaymentHeader from "@/components/payment/PaymentHeader";
 import PaymentAmount from "@/components/payment/PaymentAmount";
 import PaymentInfo from "@/components/payment/PaymentInfo";
 import QRCodeDisplay from "@/components/payment/QRCodeDisplay";
+import PaymentActions from "@/components/payment/PaymentActions";
 import { Payment } from "@/types/payment";
-import { Card, CardContent } from "@/components/ui/card";
-import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { format } from "date-fns";
 import { supabase } from "@/lib/supabaseClient";
-import { convertStaticToDynamicQRIS, generateQRImageFromQRIS } from "@/utils/qrisUtils";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 interface CustomerPaymentViewProps {
   payment: Payment;
@@ -22,6 +19,11 @@ const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
   const [whatsAppMessage, setWhatsAppMessage] = useState("Halo admin, saya sudah transfer untuk pesanan");
   const [qrisImageUrl, setQrisImageUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [showDetails, setShowDetails] = useState(true);
+  const [merchantInfo, setMerchantInfo] = useState({
+    name: "Jedo Store",
+    nmid: "ID10243136428"
+  });
 
   useEffect(() => {
     loadSettings();
@@ -48,32 +50,32 @@ const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
     try {
       setIsLoading(true);
       
-      // Ambil kode QRIS dari settings
+      // Get QRIS code from settings
       const { data: settings } = await supabase
         .from('settings')
         .select('qris_code, qris_image')
         .single();
       
       if (!settings?.qris_code) {
-        throw new Error("Belum ada QRIS yang diupload");
+        throw new Error("No QRIS has been uploaded");
       }
 
-      // Ubah versi dari statis ke dinamis
+      // Change from static to dynamic version
       const qrisWithoutCRC = settings.qris_code.slice(0, -4);
       const qrisModified = qrisWithoutCRC.replace("010211", "010212");
       
-      // Split berdasarkan kode negara merchant
+      // Split based on country code
       const qrisParts = qrisModified.split("5802ID");
       
-      // Tambahkan field nominal
+      // Add amount field
       const amountStr = payment.amount.toString();
       const amountField = "54" + (amountStr.length < 10 ? "0" + amountStr.length : amountStr.length) + amountStr;
       
-      // Gabungkan semua bagian
+      // Combine all parts
       const combinedField = amountField + "5802ID";
       const newQris = qrisParts[0] + combinedField + qrisParts[1];
       
-      // Hitung CRC16
+      // Calculate CRC16
       let crc = 0xFFFF;
       for (let i = 0; i < newQris.length; i++) {
         crc ^= newQris.charCodeAt(i) << 8;
@@ -83,7 +85,7 @@ const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
       }
       const crcHex = (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
       
-      // QRIS final dengan CRC
+      // Final QRIS with CRC
       const dynamicQRIS = newQris + crcHex;
 
       // Generate QR code image
@@ -96,7 +98,7 @@ const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
       });
 
       if (!response.ok) {
-        throw new Error("Gagal generate QR code");
+        throw new Error("Failed to generate QR code");
       }
 
       const imageBlob = await response.blob();
@@ -105,112 +107,73 @@ const CustomerPaymentView = ({ payment }: CustomerPaymentViewProps) => {
 
     } catch (error) {
       console.error("Error generating dynamic QRIS:", error);
-      toast({
-        title: "Error",
-        description: "Gagal membuat QRIS. Pastikan sudah mengupload QRIS di Settings.",
-        variant: "destructive"
-      });
+      toast.error("Failed to create QRIS. Make sure you've uploaded a QRIS in Settings.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleWhatsAppConfirmation = () => {
-    const message = `${whatsAppMessage} ${payment.id}`;
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/${adminWhatsApp}?text=${encodedMessage}`, '_blank');
-  };
-
   return (
-    <div className="space-y-6">
-      <PaymentHeader createdAt={payment.createdAt} />
+    <div className="pb-10">
+      <PaymentHeader createdAt={payment.createdAt} expiresInMinutes={5} />
       
-      <PaymentAmount amount={payment.amount} />
-      
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>QRIS Code</CardTitle>
-          </div>
-          <CardDescription>
-            Scan this QR code to pay
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center">
-          <div className="relative">
-            {isLoading ? (
-              <div className="w-64 h-64 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-              </div>
-            ) : qrisImageUrl ? (
-              <img 
-                src={qrisImageUrl}
-                alt="QRIS Code"
-                className="w-64 h-64 object-contain"
+      <div className="p-4">
+        <PaymentAmount amount={payment.amount} />
+        
+        <PaymentInfo 
+          buyerName={payment.buyerName} 
+          bankSender={payment.bankSender}
+          note={payment.note}
+        />
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          {isLoading ? (
+            <div className="w-full h-64 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            </div>
+          ) : (
+            <>
+              <QRCodeDisplay 
+                qrImageUrl={qrisImageUrl} 
+                amount={payment.amount}
+                qrisNmid={merchantInfo.nmid}
+                merchantName={merchantInfo.name}
               />
-            ) : (
-              <div className="w-64 h-64 flex items-center justify-center">
-                <p className="text-sm text-gray-500">Failed to load QR code</p>
+              <div className="text-center my-2">
+                <button 
+                  onClick={() => setShowDetails(!showDetails)} 
+                  className="text-purple-600 text-sm font-medium"
+                >
+                  {showDetails ? "Hide details" : "Show details"}
+                </button>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500">Status</span>
-            <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-              payment.status === "paid" 
-                ? "bg-green-100 text-green-700" 
-                : "bg-amber-100 text-amber-700"
-            }`}>
-              {payment.status === "paid" ? "Paid" : "Pending"}
-            </div>
-          </div>
-          
-          {payment.buyerName && (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">Buyer Name</span>
-              <span className="text-sm font-medium">{payment.buyerName}</span>
-            </div>
+              
+              {showDetails && (
+                <motion.div 
+                  className="text-center text-sm text-gray-500 space-y-1"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  <p>Merchant: <span className="font-medium">{merchantInfo.name}</span></p>
+                  <p>NMID: <span className="font-medium">{merchantInfo.nmid}</span></p>
+                  <p>Generated: <span className="font-medium">{new Date().toLocaleString()}</span></p>
+                </motion.div>
+              )}
+              
+              <PaymentActions 
+                payment={{...payment, qrImageUrl}} 
+                adminWhatsApp={adminWhatsApp}
+                whatsAppMessage={whatsAppMessage}
+              />
+            </>
           )}
-          
-          {payment.bankSender && (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">Bank/Sender</span>
-              <span className="text-sm font-medium">{payment.bankSender}</span>
-            </div>
-          )}
-          
-          {payment.note && (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">Note</span>
-              <span className="text-sm font-medium">{payment.note}</span>
-            </div>
-          )}
-          
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500">Created</span>
-            <span className="text-sm font-medium">
-              {format(new Date(payment.createdAt), "MMM d, yyyy h:mm a")}
-            </span>
-          </div>
-
-          <Button
-            onClick={handleWhatsAppConfirmation}
-            className="w-full mt-4"
-            variant="outline"
-          >
-            <MessageSquareText className="w-4 h-4 mr-2" />
-            Confirm via WhatsApp
-          </Button>
-        </CardContent>
-      </Card>
+        </motion.div>
+      </div>
     </div>
   );
 };

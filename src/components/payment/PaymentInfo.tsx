@@ -29,39 +29,39 @@ const PaymentInfo = ({ buyerName, bankSender, note }: PaymentInfoProps) => {
 
   return (
     <motion.div 
-      className="glass-effect p-5 rounded-xl mb-6"
+      className="mb-6"
       variants={containerVariants}
       initial="hidden"
       animate="show"
     >
       {buyerName && (
         <motion.div className="flex items-center mb-3" variants={itemVariants}>
-          <div className="bg-violet-100 p-2 rounded-full mr-3">
-            <User className="h-4 w-4 text-violet-600" />
+          <div className="bg-violet-100 p-3 rounded-full mr-3">
+            <User className="h-5 w-5 text-violet-600" />
           </div>
           <div>
             <p className="text-xs text-gray-500 font-medium">Customer Name</p>
-            <p className="text-sm font-semibold">{buyerName}</p>
+            <p className="text-sm font-medium">{buyerName}</p>
           </div>
         </motion.div>
       )}
       
       {bankSender && (
         <motion.div className="flex items-center mb-3" variants={itemVariants}>
-          <div className="bg-indigo-100 p-2 rounded-full mr-3">
-            <CreditCard className="h-4 w-4 text-indigo-600" />
+          <div className="bg-blue-100 p-3 rounded-full mr-3">
+            <CreditCard className="h-5 w-5 text-blue-600" />
           </div>
           <div>
             <p className="text-xs text-gray-500 font-medium">Payment Method</p>
-            <p className="text-sm font-semibold">{bankSender}</p>
+            <p className="text-sm font-medium">{bankSender}</p>
           </div>
         </motion.div>
       )}
       
       {note && (
         <motion.div className="flex items-start" variants={itemVariants}>
-          <div className="bg-amber-100 p-2 rounded-full mr-3 mt-0.5">
-            <MessageSquare className="h-4 w-4 text-amber-600" />
+          <div className="bg-amber-100 p-3 rounded-full mr-3 mt-0.5">
+            <MessageSquare className="h-5 w-5 text-amber-600" />
           </div>
           <div>
             <p className="text-xs text-gray-500 font-medium">Notes</p>

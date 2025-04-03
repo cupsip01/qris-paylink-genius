@@ -1,32 +1,48 @@
 
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
-import { Receipt } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface PaymentHeaderProps {
   createdAt: string;
+  expiresInMinutes?: number;
 }
 
-const PaymentHeader = ({ createdAt }: PaymentHeaderProps) => {
+const PaymentHeader = ({ createdAt, expiresInMinutes }: PaymentHeaderProps) => {
+  const navigate = useNavigate();
+  
+  const handleBack = () => {
+    navigate(-1);
+  };
+  
   return (
     <motion.div 
-      className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white p-6 text-center rounded-t-xl"
+      className="bg-purple-600 text-white p-6 text-center rounded-b-3xl relative"
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <div className="flex flex-col items-center justify-center">
-        <div className="bg-white/20 p-3 rounded-full mb-3">
-          <Receipt className="h-6 w-6" />
-        </div>
-        <h2 className="text-2xl font-bold font-poppins">Payment Details</h2>
-        <motion.p 
-          className="text-sm opacity-90 mt-1 font-medium bg-white/10 px-3 py-1 rounded-full"
-          animate={{ opacity: [0.7, 1, 0.7] }}
-          transition={{ duration: 3, repeat: Infinity }}
+      <div className="absolute top-6 left-6">
+        <button 
+          onClick={handleBack}
+          className="p-1 rounded-full hover:bg-white/10"
         >
-          Created {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
-        </motion.p>
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+      </div>
+      
+      <div className="flex flex-col items-center justify-center">
+        <h2 className="text-2xl font-bold font-poppins">Payment Details</h2>
+        {expiresInMinutes && (
+          <motion.p 
+            className="text-sm opacity-90 mt-1 font-medium"
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 3, repeat: Infinity }}
+          >
+            Expires in {expiresInMinutes}:00
+          </motion.p>
+        )}
       </div>
     </motion.div>
   );

@@ -1,7 +1,7 @@
 
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, ClipboardList, Settings, ArrowLeft } from "lucide-react";
+import { Home, ClipboardList, Settings, ArrowLeft, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -31,25 +31,63 @@ const Layout = ({
     navigate(-1);
   };
   
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out.",
+      });
+      navigate('/auth');
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out",
+        variant: "destructive",
+      });
+    }
+  };
+  
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className={`p-4 bg-white dark:bg-gray-900 border-b ${title ? '' : 'hidden'}`}>
-        <div className="container mx-auto flex items-center">
-          {showBackButton && (
-            <button 
-              onClick={handleBack}
-              className="mr-3 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-          )}
+      <header className="p-4 bg-white dark:bg-gray-900 border-b">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center">
+            {showBackButton && (
+              <button 
+                onClick={handleBack}
+                className="mr-3 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+            )}
+            
+            {title ? (
+              <div>
+                <h1 className="text-2xl font-bold">{title}</h1>
+                {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+              </div>
+            ) : (
+              <img 
+                src="/logokeuanganpay.webp" 
+                alt="QRIS Logo" 
+                className="h-8 w-auto" 
+              />
+            )}
+          </div>
           
-          {title && (
-            <div>
-              <h1 className="text-2xl font-bold">{title}</h1>
-              {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
-            </div>
+          {user && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleSignOut}
+              className="flex items-center gap-1 text-gray-600 hover:text-gray-900"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
           )}
         </div>
       </header>

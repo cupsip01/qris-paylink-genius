@@ -17,33 +17,29 @@ export default function AuthPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-qris-red"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-indigo-700">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-qris-red text-white p-4">
-        <div className="container mx-auto flex justify-center items-center">
-          <img 
-            src="/logokeuanganpay.webp" 
-            alt="QRIS Logo" 
-            className="h-10 w-auto" 
-          />
-          <span className="text-2xl font-bold ml-2">QRIS Keuangan Pribadi</span>
-        </div>
-      </div>
-
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-600 to-indigo-700">
       <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md bg-white/10 backdrop-blur-md p-8 rounded-xl shadow-xl border border-white/20">
+          <div className="flex justify-center mb-8">
+            <img 
+              src="/logokeuanganpay.webp" 
+              alt="QRIS Logo" 
+              className="h-16 w-auto" 
+            />
+          </div>
           <Auth />
         </div>
       </div>
 
-      <footer className="bg-gray-100 py-4">
-        <div className="container mx-auto text-center text-gray-500 text-sm">
+      <footer className="py-4 backdrop-blur-sm bg-white/10 text-white">
+        <div className="container mx-auto text-center text-sm">
           &copy; {new Date().getFullYear()} QRIS Keuangan Pribadi. All rights reserved.
         </div>
       </footer>

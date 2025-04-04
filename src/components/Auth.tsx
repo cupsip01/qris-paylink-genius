@@ -114,137 +114,113 @@ export default function Auth() {
   };
 
   return (
-    <div className="max-w-md mx-auto py-10">
-      <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="login">Login</TabsTrigger>
-          <TabsTrigger value="register">Register</TabsTrigger>
+    <div>
+      <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="text-white">
+        <TabsList className="grid w-full grid-cols-2 bg-white/20 mb-6">
+          <TabsTrigger value="login" className="data-[state=active]:bg-white/30">Login</TabsTrigger>
+          <TabsTrigger value="register" className="data-[state=active]:bg-white/30">Register</TabsTrigger>
         </TabsList>
         
         <TabsContent value="login">
-          <Card>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold text-center">
-                Login to Your Account
-              </CardTitle>
-              <CardDescription className="text-center">
-                Enter your credentials to access your account
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your.email@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <Button
-                  type="submit"
-                  className="w-full bg-qris-red hover:bg-red-700"
-                  disabled={loading}
-                >
-                  {loading ? "Logging in..." : "Login"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-white">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-300" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your.email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-white">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-300" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60"
+                  required
+                />
+              </div>
+            </div>
+            
+            <Button
+              type="submit"
+              className="w-full bg-white hover:bg-white/90 text-purple-700 font-medium"
+              disabled={loading}
+            >
+              {loading ? "Logging in..." : "Login"}
+            </Button>
+          </form>
         </TabsContent>
         
         <TabsContent value="register">
-          <Card>
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold text-center">
-                Create an Account
-              </CardTitle>
-              <CardDescription className="text-center">
-                Enter your information to create an account
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                    <Input
-                      id="fullName"
-                      placeholder="John Doe"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="registerEmail">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                    <Input
-                      id="registerEmail"
-                      type="email"
-                      placeholder="your.email@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="registerPassword">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                    <Input
-                      id="registerPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <Button
-                  type="submit"
-                  className="w-full bg-qris-red hover:bg-red-700"
-                  disabled={loading}
-                >
-                  {loading ? "Registering..." : "Register"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+          <form onSubmit={handleSignUp} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName" className="text-white">Full Name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-300" />
+                <Input
+                  id="fullName"
+                  placeholder="John Doe"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="registerEmail" className="text-white">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-300" />
+                <Input
+                  id="registerEmail"
+                  type="email"
+                  placeholder="your.email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="registerPassword" className="text-white">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-300" />
+                <Input
+                  id="registerPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60"
+                  required
+                />
+              </div>
+            </div>
+            
+            <Button
+              type="submit"
+              className="w-full bg-white hover:bg-white/90 text-purple-700 font-medium"
+              disabled={loading}
+            >
+              {loading ? "Registering..." : "Register"}
+            </Button>
+          </form>
         </TabsContent>
       </Tabs>
     </div>

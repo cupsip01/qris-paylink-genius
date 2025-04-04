@@ -1,69 +1,146 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import QRCode from 'qrcode.react';
+import { Copy, CheckCircle, AlertCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
+import { useQuery } from '@tanstack/react-query';
+import { getPayment } from '@/utils/paymentService';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import Layout from "@/components/Layout";
 
-import { useParams } from "react-router-dom";
-import { Payment } from "@/types/payment";
-import CustomerPaymentView from "@/components/payment/CustomerPaymentView";
-import { useQuery } from "@tanstack/react-query";
-import { PaymentService } from "@/utils/paymentService";
-import { Loader2 } from "lucide-react";
+const PaymentDetails = () => {
+  const { id: paymentId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [copied, setCopied] = useState(false);
+  const [paymentLink, setPaymentLink] = useState('');
 
-export default function PaymentDetails() {
-  const { id } = useParams<{ id: string }>();
-  
-  const {
-    data: payment,
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ['payment', id],
-    queryFn: () => id ? PaymentService.getPayment(id) : Promise.reject("No payment ID"),
-    enabled: Boolean(id),
-    refetchInterval: (data) => {
-      // Refetch every 5 seconds if payment is pending, otherwise don't refetch
-      return data && data.status === 'pending' ? 5000 : false;
-    },
+  useEffect(() => {
+    if (paymentId) {
+      setPaymentLink(`${window.location.origin}/payment/${paymentId}`);
+    }
+  }, [paymentId]);
+
+  const { data: payment, isLoading, isError, error } = useQuery({
+    queryKey: ['payment', paymentId],
+    queryFn: () => getPayment(paymentId),
+    enabled: !!paymentId, // Ensure paymentId is not undefined
   });
 
-  // If payment exists but status is not 'pending' or 'paid', convert it to one of these values
-  let processedPayment: Payment | undefined;
-  if (payment) {
-    const validStatus = payment.status === 'pending' || payment.status === 'paid' 
-      ? payment.status 
-      : 'pending';
-      
-    processedPayment = {
-      ...payment,
-      status: validStatus as 'pending' | 'paid'
-    };
-  }
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(paymentLink);
+    setCopied(true);
+    toast.success("Link copied to clipboard!");
+    setTimeout(() => setCopied(false), 3000);
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-qris-red" />
-          <span>Loading payment...</span>
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
-  if (error) {
+  if (isError) {
+    console.error("Error fetching payment:", error);
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold text-red-600">Payment Not Found</h1>
-          <p className="text-gray-600">
-            The payment you're looking for doesn't exist or has been removed.
-          </p>
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center text-red-500">
+          <AlertCircle className="h-6 w-6 mr-2" />
+          Failed to load payment details. {error instanceof Error ? error.message : 'Unknown error.'}
         </div>
-      </div>
+      </Layout>
     );
   }
+
+  if (!payment) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center text-gray-500">
+          <AlertCircle className="h-6 w-6 mr-2" />
+          Payment not found.
+        </div>
+      </Layout>
+    );
+  }
+
+  const formattedDate = payment.created_at
+    ? format(new Date(payment.created_at), 'dd MMMM yyyy, HH:mm', { locale: id })
+    : 'N/A';
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-8">
-      {processedPayment && <CustomerPaymentView payment={processedPayment} />}
-    </div>
+    <Layout title="Payment Details" showBackButton>
+      <div className="container mx-auto p-4">
+        <div className="bg-white shadow rounded-lg p-6">
+          <h1 className="text-2xl font-semibold mb-4">Payment ID: {payment.id}</h1>
+
+          <div className="md:flex md:space-x-6">
+            <div className="md:w-1/2">
+              <div className="mb-4">
+                <p className="text-gray-700">
+                  Amount: <span className="font-semibold">Rp {payment.amount.toLocaleString('id-ID')}</span>
+                </p>
+                <p className="text-gray-700">
+                  Status: <span className={`font-semibold ${payment.status === 'paid' ? 'text-green-500' : 'text-red-500'}`}>{payment.status}</span>
+                </p>
+                <p className="text-gray-700">
+                  Created At: <span className="font-medium">{formattedDate}</span>
+                </p>
+                {payment.buyer_name && (
+                  <p className="text-gray-700">
+                    Buyer Name: <span className="font-medium">{payment.buyer_name}</span>
+                  </p>
+                )}
+                {payment.bank_sender && (
+                  <p className="text-gray-700">
+                    Bank Sender: <span className="font-medium">{payment.bank_sender}</span>
+                  </p>
+                )}
+                {payment.note && (
+                  <p className="text-gray-700">
+                    Note: <span className="font-medium">{payment.note}</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="mb-4">
+                <h2 className="text-xl font-semibold mb-2">Payment Link</h2>
+                <div className="flex items-center">
+                  <Input
+                    type="text"
+                    value={paymentLink}
+                    readOnly
+                    className="flex-grow mr-2"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={handleCopyLink}
+                    disabled={copied}
+                  >
+                    {copied ? <CheckCircle className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                    {copied ? "Copied!" : "Copy Link"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="md:w-1/2 flex flex-col items-center justify-center">
+              <h2 className="text-xl font-semibold mb-2">QR Code</h2>
+              {paymentId && (
+                <QRCode value={paymentLink} size={256} className="border rounded" />
+              )}
+              <p className="text-gray-500 mt-2">Scan this QR code to make payment</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
   );
-}
+};
+
+export default PaymentDetails;

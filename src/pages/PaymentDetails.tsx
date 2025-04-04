@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Copy, CheckCircle, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -133,7 +133,7 @@ const PaymentDetails = () => {
             <div className="md:w-1/2 flex flex-col items-center justify-center">
               <h2 className="text-xl font-semibold mb-2">QR Code</h2>
               {paymentId && (
-                <QRCode value={paymentLink} size={256} className="border rounded" />
+                <QRCodeSVG value={paymentLink} size={256} className="border rounded" />
               )}
               <p className="text-gray-500 mt-2">Scan this QR code to make payment</p>
             </div>

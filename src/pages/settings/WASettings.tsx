@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -57,7 +56,7 @@ export default function WASettings() {
   };
 
   return (
-    <Layout title="WhatsApp Settings" subtitle="Configure your WhatsApp integration">
+    <Layout title="WhatsApp Settings" subtitle="Configure your WhatsApp integration" showBackButton={true}>
       <div className="space-y-6 max-w-lg mx-auto">
         <div className="space-y-2">
           <Label htmlFor="whatsappNumber">WhatsApp Number</Label>

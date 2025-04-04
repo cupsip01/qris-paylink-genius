@@ -4,29 +4,75 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/context/AuthProvider";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, User, UserCircle, Globe, QrCode, Smartphone, Moon, Sun, LogIn } from "lucide-react";
+import { 
+  ChevronRight, 
+  User, 
+  UserCircle, 
+  Globe, 
+  QrCode, 
+  Smartphone, 
+  Moon, 
+  LogOut
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const SettingsPage = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out"
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Sign out failed",
+        description: "There was a problem signing out",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
-    <Layout title="Pengaturan" subtitle="View all your generated QRIS payments">
+    <Layout 
+      title="Pengaturan" 
+      subtitle="View all your generated QRIS payments"
+      showBackButton={true}
+    >
       <div className="space-y-4">
         {/* Account Section */}
         <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm">
-          <div className="p-4 flex items-center gap-3">
-            <div className="bg-gray-100 dark:bg-gray-700 rounded-full p-2">
-              <UserCircle className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-full p-2">
+                <UserCircle className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-medium text-purple-600">
+                  {user ? user.email : "Login"}
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {user ? "Signed in" : "You are not signed in"}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-medium text-purple-600">
-                {user ? user.email : "Login"}
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {user ? "Signed in" : "You are not signed in"}
-              </p>
-            </div>
+            
+            {user && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleSignOut} 
+                className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                title="Sign out"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            )}
           </div>
         </div>
         
@@ -91,7 +137,7 @@ const SettingsPage = () => {
             onClick={() => navigate('/auth')} 
             className="w-full bg-purple-600 hover:bg-purple-700"
           >
-            <LogIn className="h-5 w-5 mr-2" /> Login
+            <User className="h-5 w-5 mr-2" /> Login
           </Button>
         ) : null}
       </div>

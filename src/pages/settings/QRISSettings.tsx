@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -117,7 +116,7 @@ export default function QRISSettings() {
   };
 
   return (
-    <Layout title="QRIS Settings" subtitle="Configure your QRIS integration">
+    <Layout title="QRIS Settings" subtitle="Configure your QRIS integration" showBackButton={true}>
       <div className="space-y-6 max-w-lg mx-auto">
         <div className="space-y-2">
           <Label htmlFor="qrisCode">Static QRIS Code</Label>

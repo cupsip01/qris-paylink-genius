@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, ClipboardList, Settings, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import { Button } from "./ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface LayoutProps {
   children: ReactNode;
@@ -19,8 +20,9 @@ const Layout = ({
   subtitle 
 }: LayoutProps) => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Check current route
   const currentPath = location.pathname;
@@ -32,31 +34,23 @@ const Layout = ({
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="p-4 bg-white dark:bg-gray-900 border-b">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center">
-            {showBackButton && (
-              <button 
-                onClick={handleBack}
-                className="mr-3 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-            )}
-            
-            {title ? (
-              <div>
-                <h1 className="text-2xl font-bold">{title}</h1>
-                {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
-              </div>
-            ) : (
-              <img 
-                src="/logokeuanganpay.webp" 
-                alt="QRIS Logo" 
-                className="h-8 w-auto" 
-              />
-            )}
-          </div>
+      <header className={`p-4 bg-white dark:bg-gray-900 border-b ${title ? '' : 'hidden'}`}>
+        <div className="container mx-auto flex items-center">
+          {showBackButton && (
+            <button 
+              onClick={handleBack}
+              className="mr-3 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          )}
+          
+          {title && (
+            <div>
+              <h1 className="text-2xl font-bold">{title}</h1>
+              {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+            </div>
+          )}
         </div>
       </header>
       

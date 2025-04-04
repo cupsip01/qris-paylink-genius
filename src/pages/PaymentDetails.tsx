@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode.react';
@@ -69,8 +70,8 @@ const PaymentDetails = () => {
     );
   }
 
-  const formattedDate = payment.created_at
-    ? format(new Date(payment.created_at), 'dd MMMM yyyy, HH:mm', { locale: id })
+  const formattedDate = payment.createdAt
+    ? format(new Date(payment.createdAt), 'dd MMMM yyyy, HH:mm', { locale: id })
     : 'N/A';
 
   return (
@@ -91,14 +92,14 @@ const PaymentDetails = () => {
                 <p className="text-gray-700">
                   Created At: <span className="font-medium">{formattedDate}</span>
                 </p>
-                {payment.buyer_name && (
+                {payment.buyerName && (
                   <p className="text-gray-700">
-                    Buyer Name: <span className="font-medium">{payment.buyer_name}</span>
+                    Buyer Name: <span className="font-medium">{payment.buyerName}</span>
                   </p>
                 )}
-                {payment.bank_sender && (
+                {payment.bankSender && (
                   <p className="text-gray-700">
-                    Bank Sender: <span className="font-medium">{payment.bank_sender}</span>
+                    Bank Sender: <span className="font-medium">{payment.bankSender}</span>
                   </p>
                 )}
                 {payment.note && (

@@ -1,10 +1,9 @@
 
 import { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, ClipboardList, Settings, ArrowLeft, LogOut } from "lucide-react";
+import { Home, ClipboardList, Settings, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthProvider";
 import { Button } from "./ui/button";
-import { useToast } from "@/hooks/use-toast";
 
 interface LayoutProps {
   children: ReactNode;
@@ -20,33 +19,14 @@ const Layout = ({
   subtitle 
 }: LayoutProps) => {
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
   
   // Check current route
   const currentPath = location.pathname;
   
   const handleBack = () => {
     navigate(-1);
-  };
-  
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out.",
-      });
-      navigate('/auth');
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast({
-        title: "Error",
-        description: "Failed to sign out",
-        variant: "destructive",
-      });
-    }
   };
   
   return (
@@ -77,18 +57,6 @@ const Layout = ({
               />
             )}
           </div>
-          
-          {user && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleSignOut}
-              className="flex items-center gap-1 text-gray-600 hover:text-gray-900"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
-          )}
         </div>
       </header>
       

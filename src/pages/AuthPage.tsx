@@ -31,7 +31,7 @@ export default function AuthPage() {
             <img 
               src="/logokeuanganpay.webp" 
               alt="QRIS Logo" 
-              className="h-16 w-auto" 
+              className="h-16 w-auto"
             />
           </div>
           <Auth />

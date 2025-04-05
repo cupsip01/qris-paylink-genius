@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import Layout from "@/components/Layout";
-import { Wallet, Upload, Scan, ArrowRight } from "lucide-react";
+import { Wallet, Upload, Scan, ArrowRight, QrCode } from "lucide-react";
 import { SettingsService } from "@/utils/settingsService";
 
 const Index = () => {
@@ -42,7 +42,7 @@ const Index = () => {
           // Try to parse merchant info if we have a QR code
           if (settings.qrisCode) {
             try {
-              const merchantData = PaymentService.parseQRWithOCR(settings.qrisImage);
+              const merchantData = await PaymentService.parseQRWithOCR(settings.qrisImage);
               setMerchantInfo(merchantData.merchantInfo);
             } catch (error) {
               console.error("Error parsing saved QR:", error);
@@ -241,7 +241,7 @@ const Index = () => {
           {savedQrIsAvailable && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-3">
               <div className="bg-green-100 p-2 rounded-full">
-                <QR className="h-5 w-5 text-green-600" />
+                <QrCode className="h-5 w-5 text-green-600" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-green-700">Using saved QRIS code</p>

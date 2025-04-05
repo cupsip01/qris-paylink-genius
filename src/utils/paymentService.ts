@@ -184,11 +184,11 @@ export const getPayment = async (id: string): Promise<Payment> => {
 
       // Extract merchant info from data
       const merchantInfo = data.merchant_info || {};
-      const merchantName = typeof merchantInfo === 'object' && merchantInfo !== null 
-        ? merchantInfo.merchantName || "Jedo Store" 
+      const merchantName = typeof merchantInfo === 'object' && merchantInfo !== null && 'merchantName' in merchantInfo
+        ? (merchantInfo as any).merchantName || "Jedo Store" 
         : "Jedo Store";
-      const qrisNmid = typeof merchantInfo === 'object' && merchantInfo !== null 
-        ? merchantInfo.nmid || "ID10243136428" 
+      const qrisNmid = typeof merchantInfo === 'object' && merchantInfo !== null && 'nmid' in merchantInfo
+        ? (merchantInfo as any).nmid || "ID10243136428" 
         : "ID10243136428";
 
       // Transform the database record into our Payment type
@@ -389,11 +389,11 @@ export const getAllPayments = async (): Promise<Payment[]> => {
       // Transform database records to Payment objects
       payments = data.map(item => {
         const merchantInfo = item.merchant_info || {};
-        const merchantName = typeof merchantInfo === 'object' && merchantInfo !== null 
-          ? merchantInfo.merchantName || "Jedo Store" 
+        const merchantName = typeof merchantInfo === 'object' && merchantInfo !== null && 'merchantName' in merchantInfo
+          ? (merchantInfo as any).merchantName || "Jedo Store" 
           : "Jedo Store";
-        const qrisNmid = typeof merchantInfo === 'object' && merchantInfo !== null 
-          ? merchantInfo.nmid || "ID10243136428" 
+        const qrisNmid = typeof merchantInfo === 'object' && merchantInfo !== null && 'nmid' in merchantInfo
+          ? (merchantInfo as any).nmid || "ID10243136428" 
           : "ID10243136428";
         
         return {

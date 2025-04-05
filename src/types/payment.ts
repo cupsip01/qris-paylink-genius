@@ -28,6 +28,11 @@ export interface Payment {
   // Added fields for OCR and merchant data
   ocrResult?: string; // Raw OCR result text
   merchantInfo?: any; // Merchant information extracted from the QR code
+  
+  // Additional fields from database
+  static_qris_content?: string;
+  ocr_result?: string;
+  merchant_info?: any;
 }
 
 export interface UserProfile {

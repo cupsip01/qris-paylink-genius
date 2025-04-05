@@ -22,6 +22,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     console.log("Setting up auth provider");
     
+    // Handle hash fragment from OAuth redirects
+    const handleHashFragment = () => {
+      const hashFragment = window.location.hash;
+      if (hashFragment && hashFragment.includes('access_token')) {
+        // Remove the hash to clean up the URL without reloading the page
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    };
+    
+    // Clean up URL if it contains auth tokens
+    handleHashFragment();
+    
     // Set up the auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {

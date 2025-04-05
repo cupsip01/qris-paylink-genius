@@ -8,46 +8,50 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // 1. Coba dapatkan sesi dari URL
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
-
-        if (accessToken) {
-          console.log('Got access token, setting session...');
-          
-          // 2. Set session dengan token yang diterima
-          const { data: { session }, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || ''
-          });
-
-          if (sessionError) {
-            console.error('Session error:', sessionError);
-            throw sessionError;
-          }
-
-          if (session) {
-            console.log('Session set successfully, redirecting to home...');
-            navigate('/', { replace: true });
-            return;
-          }
+        // 1. Cek apakah ada hash di URL
+        const hash = window.location.hash;
+        if (!hash) {
+          console.log('No hash found in URL');
+          navigate('/auth');
+          return;
         }
 
-        // 3. Jika tidak ada token di URL, cek sesi yang ada
-        console.log('No tokens in URL, checking existing session...');
-        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        // 2. Parse hash parameters
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        const expiresIn = params.get('expires_in');
+
+        if (!accessToken) {
+          console.log('No access token found in URL');
+          navigate('/auth');
+          return;
+        }
+
+        console.log('Setting session with tokens...');
         
-        if (existingSession) {
-          console.log('Found existing session, redirecting to home...');
+        // 3. Set session dengan token yang diterima
+        const { data: { session }, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || ''
+        });
+
+        if (error) {
+          console.error('Error setting session:', error);
+          throw error;
+        }
+
+        if (session) {
+          console.log('Session set successfully, user:', session.user?.email);
+          // 4. Redirect ke home setelah session berhasil di-set
           navigate('/', { replace: true });
         } else {
-          console.log('No session found, redirecting to auth...');
-          navigate('/auth', { replace: true });
+          console.log('No session after setting tokens');
+          navigate('/auth');
         }
       } catch (error) {
         console.error('Error in auth callback:', error);
-        navigate('/auth', { replace: true });
+        navigate('/auth');
       }
     };
 
@@ -59,6 +63,7 @@ export default function AuthCallback() {
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto mb-4"></div>
         <p className="text-gray-600">Memproses autentikasi...</p>
+        <p className="text-sm text-gray-500 mt-2">Mohon tunggu sebentar</p>
       </div>
     </div>
   );

@@ -121,13 +121,11 @@ export default function Auth() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://pay.keuanganpribadi.web.id',
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent',
-            hd: 'pay.keuanganpribadi.web.id'
-          },
-          skipBrowserRedirect: false
+            prompt: 'consent'
+          }
         }
       });
       

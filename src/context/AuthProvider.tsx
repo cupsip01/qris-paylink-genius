@@ -50,36 +50,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+        console.log('Auth state changed:', { event, email: session?.user?.email });
         setSession(session);
         setUser(session?.user ?? null);
 
         if (event === 'SIGNED_IN') {
-          console.log('User signed in, redirecting...');
+          console.log('User signed in successfully:', session?.user?.email);
           toast({
             title: 'Login berhasil',
             description: 'Selamat datang kembali!',
           });
           // Only redirect if we're on the auth page
           if (location.pathname.startsWith('/auth')) {
+            console.log('Redirecting to home after sign in');
             navigate('/', { replace: true });
           }
         }
 
         if (event === 'SIGNED_OUT') {
-          console.log('User signed out, redirecting to auth...');
+          console.log('User signed out');
           toast({
             title: 'Logout berhasil',
             description: 'Sampai jumpa!',
           });
           navigate('/auth', { replace: true });
         }
+
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed for user:', session?.user?.email);
+        }
       }
     );
 
     // Fetch current session
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      console.log('Initial session check:', initialSession?.user?.email);
+      console.log('Initial session check:', {
+        hasSession: !!initialSession,
+        email: initialSession?.user?.email
+      });
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
       setLoading(false);

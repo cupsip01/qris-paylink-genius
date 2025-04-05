@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 
 interface PaymentAmountProps {
@@ -16,12 +15,18 @@ const parseAmount = (amount: number | string): number => {
 };
 
 const formatCurrency = (amount: number | string): string => {
-  const numericAmount = parseAmount(amount);
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
+  const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
     minimumFractionDigits: 0,
-  }).format(numericAmount);
+    maximumFractionDigits: 0
+  })
+    .format(numericAmount)
+    .replace('IDR', 'Rp')
+    .replace(/\./g, ',')
+    .replace(/,/g, '.')
+    .replace(/\s+/g, ' ');
 };
 
 const PaymentAmount = ({ amount }: PaymentAmountProps) => {

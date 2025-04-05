@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthProvider";
 import { ThemeProvider } from "./context/ThemeProvider";
@@ -21,7 +20,14 @@ import { Toaster } from "./components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 
 // Create a client
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (
@@ -36,11 +42,11 @@ function App() {
               <Route path="/edit/:id" element={<ProtectedRoute><EditPayment /></ProtectedRoute>} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/callback" element={<AuthPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/settings/wa" element={<WASettings />} />
-              <Route path="/settings/qris" element={<QRISSettings />} />
-              <Route path="/settings/general" element={<GeneralSettings />} />
-              <Route path="/settings/appearance" element={<AppearanceSettings />} />
+              <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/settings/wa" element={<ProtectedRoute><WASettings /></ProtectedRoute>} />
+              <Route path="/settings/qris" element={<ProtectedRoute><QRISSettings /></ProtectedRoute>} />
+              <Route path="/settings/general" element={<ProtectedRoute><GeneralSettings /></ProtectedRoute>} />
+              <Route path="/settings/appearance" element={<ProtectedRoute><AppearanceSettings /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             

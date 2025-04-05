@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
@@ -9,6 +10,8 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  authError: string | null;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,6 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -46,8 +50,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     };
 
+    // Check for error parameters in URL
+    const checkForErrors = () => {
+      const url = new URL(window.location.href);
+      const errorMsg = url.searchParams.get('error_description');
+      if (errorMsg) {
+        setAuthError(errorMsg);
+        // Clean up the URL
+        window.history.replaceState(null, '', window.location.pathname);
+        return true;
+      }
+      return false;
+    };
+
     const wasRedirected = cleanupSupabaseUrl();
     const hadHash = handleHashFragment();
+    const hadError = checkForErrors();
 
     // Fetch current session
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
@@ -55,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(initialSession?.user ?? null);
       setLoading(false);
 
-      if ((wasRedirected || hadHash) && initialSession) {
+      if ((wasRedirected || hadHash) && initialSession && !hadError) {
         navigate('/', { replace: true });
       }
     });
@@ -93,11 +111,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      setAuthError(null);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error: any) {
+      console.error("Google login error:", error);
+      setAuthError(error.message || "An error occurred during Google sign in");
+    }
+  };
+
   const value = {
     session,
     user,
     loading,
     signOut,
+    signInWithGoogle,
+    authError
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

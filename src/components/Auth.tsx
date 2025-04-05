@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
@@ -7,17 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Lock } from "lucide-react";
+import { User, Mail, Lock, AlertCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/context/AuthProvider";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const { toast } = useToast();
+  const { signInWithGoogle, authError } = useAuth();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,30 +117,20 @@ export default function Auth() {
   };
 
   const handleGoogleSignIn = async () => {
-    setGoogleLoading(true);
-    
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        }
-      });
-      
-      if (error) throw error;
-    } catch (error: any) {
-      console.error("Google login error:", error);
-      toast({
-        title: "Google sign in failed",
-        description: error.message || "An error occurred during Google sign in",
-        variant: "destructive",
-      });
-      setGoogleLoading(false);
-    }
+    await signInWithGoogle();
   };
 
   return (
     <div className="max-w-md mx-auto py-10">
+      {authError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {authError} - Please make sure your Google OAuth configuration is correct in Supabase and Google Cloud Console.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="login">Login</TabsTrigger>
@@ -161,19 +152,14 @@ export default function Auth() {
                 type="button"
                 variant="outline"
                 onClick={handleGoogleSignIn}
-                disabled={googleLoading}
                 className="w-full mb-5 border-gray-300 flex items-center justify-center gap-2"
               >
-                {googleLoading ? (
-                  <div className="animate-spin h-4 w-4 border-2 border-gray-500 rounded-full border-t-transparent"></div>
-                ) : (
-                  <svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
-                    <g transform="matrix(1, 0, 0, 1, 0, 0)">
-                      <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.9 8.2,4.73 12.2,4.73C15.29,4.73 17.1,6.7 17.1,6.7L19,4.72C19,4.72 16.56,2 12.1,2C6.42,2 2.03,6.8 2.03,12C2.03,17.05 6.16,22 12.25,22C17.6,22 21.5,18.33 21.5,12.91C21.5,11.76 21.35,11.1 21.35,11.1Z" fill="#4285F4"></path>
-                    </g>
-                  </svg>
-                )}
-                {googleLoading ? "Signing in..." : "Sign in with Google"}
+                <svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+                  <g transform="matrix(1, 0, 0, 1, 0, 0)">
+                    <path d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.9 8.2,4.73 12.2,4.73C15.29,4.73 17.1,6.7 17.1,6.7L19,4.72C19,4.72 16.56,2 12.1,2C6.42,2 2.03,6.8 2.03,12C2.03,17.05 6.16,22 12.25,22C17.6,22 21.5,18.33 21.5,12.91C21.5,11.76 21.35,11.1 21.35,11.1Z" fill="#4285F4"></path>
+                  </g>
+                </svg>
+                Sign in with Google
               </Button>
               
               <div className="relative mb-4">
@@ -298,6 +284,18 @@ export default function Auth() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      <div className="mt-6 bg-blue-50 border border-blue-200 p-4 rounded-lg">
+        <h3 className="font-medium text-blue-800 mb-2">Google Login Setup Instructions</h3>
+        <ol className="text-sm text-blue-700 space-y-2 list-decimal pl-5">
+          <li>Go to your <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="underline font-medium">Google Cloud Console</a></li>
+          <li>Make sure you've added <strong>{window.location.origin}</strong> as an Authorized JavaScript Origin</li>
+          <li>Ensure <strong>{window.location.origin}/auth/callback</strong> is added as an Authorized Redirect URI</li>
+          <li>Add the Google OAuth provider in <a href="https://supabase.com/dashboard/project/klltuycxuymjnrpewjre/auth/providers" target="_blank" className="underline font-medium">Supabase Auth settings</a></li>
+          <li>In Supabase, set the Site URL to <strong>{window.location.origin}</strong></li>
+          <li>Add <strong>{window.location.origin}/auth/callback</strong> to the Redirect URLs</li>
+        </ol>
+      </div>
     </div>
   );
 }

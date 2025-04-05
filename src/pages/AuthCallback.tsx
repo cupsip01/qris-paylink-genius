@@ -6,40 +6,43 @@ export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fungsi untuk mengekstrak token dari URL
-    const extractHashParameters = () => {
-      const hash = window.location.hash.substring(1); // Hapus karakter # di awal
-      return Object.fromEntries(
-        hash.split('&').map(param => param.split('='))
-      );
-    };
-
     const handleCallback = async () => {
       try {
-        // 1. Cek apakah ada hash parameters
-        const params = extractHashParameters();
-        if (params.access_token) {
-          // 2. Set session secara manual jika perlu
-          const { data: { session }, error } = await supabase.auth.setSession({
-            access_token: params.access_token,
-            refresh_token: params.refresh_token || ''
+        // 1. Coba dapatkan sesi dari URL
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+
+        if (accessToken) {
+          console.log('Got access token, setting session...');
+          
+          // 2. Set session dengan token yang diterima
+          const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || ''
           });
 
-          if (error) throw error;
+          if (sessionError) {
+            console.error('Session error:', sessionError);
+            throw sessionError;
+          }
 
           if (session) {
-            // 3. Redirect ke halaman utama
-            console.log('Login berhasil, redirect ke home');
+            console.log('Session set successfully, redirecting to home...');
             navigate('/', { replace: true });
             return;
           }
         }
 
-        // 4. Jika tidak ada token, coba dapatkan sesi yang ada
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
+        // 3. Jika tidak ada token di URL, cek sesi yang ada
+        console.log('No tokens in URL, checking existing session...');
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        
+        if (existingSession) {
+          console.log('Found existing session, redirecting to home...');
           navigate('/', { replace: true });
         } else {
+          console.log('No session found, redirecting to auth...');
           navigate('/auth', { replace: true });
         }
       } catch (error) {

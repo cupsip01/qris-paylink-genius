@@ -47,8 +47,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const wasRedirected = cleanupSupabaseUrl();
     const hadHash = handleHashFragment();
 
+    // Listen to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (event === 'SIGNED_IN') {
+          console.log('User signed in, redirecting...');
+          toast({
+            title: 'Login berhasil',
+            description: 'Selamat datang kembali!',
+          });
+          // Only redirect if we're on the auth page
+          if (location.pathname.startsWith('/auth')) {
+            navigate('/', { replace: true });
+          }
+        }
+
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out, redirecting to auth...');
+          toast({
+            title: 'Logout berhasil',
+            description: 'Sampai jumpa!',
+          });
+          navigate('/auth', { replace: true });
+        }
+      }
+    );
+
     // Fetch current session
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      console.log('Initial session check:', initialSession?.user?.email);
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
       setLoading(false);
@@ -57,33 +88,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         navigate('/', { replace: true });
       }
     });
-
-    // Listen to auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (event === 'SIGNED_IN') {
-          toast({
-            title: 'Login berhasil',
-            description: 'Selamat datang kembali!',
-          });
-          // Only redirect if we're on the auth page
-          if (location.pathname === '/auth') {
-            navigate('/');
-          }
-        }
-
-        if (event === 'SIGNED_OUT') {
-          toast({
-            title: 'Logout berhasil',
-            description: 'Sampai jumpa!',
-          });
-          navigate('/auth');
-        }
-      }
-    );
 
     return () => {
       subscription.unsubscribe();

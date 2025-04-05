@@ -118,28 +118,23 @@ export default function Auth() {
     setGoogleLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent'
-          },
-          skipBrowserRedirect: true
+          }
         }
       });
       
       if (error) throw error;
 
-      // Redirect manual ke callback URL
-      const currentUrl = window.location.href;
-      if (currentUrl.includes('supabase.co')) {
-        const hashIndex = currentUrl.indexOf('#');
-        if (hashIndex !== -1) {
-          const hashPart = currentUrl.substring(hashIndex);
-          window.location.href = `${window.location.origin}/auth/callback${hashPart}`;
-        }
+      // Jika ada data.url, redirect ke URL tersebut
+      if (data?.url) {
+        console.log('Redirecting to:', data.url);
+        window.location.href = data.url;
       }
     } catch (error: any) {
       console.error("Google login error:", error);

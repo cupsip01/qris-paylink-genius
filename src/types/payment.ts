@@ -27,12 +27,22 @@ export interface Payment {
   
   // Added fields for OCR and merchant data
   ocrResult?: string; // Raw OCR result text
-  merchantInfo?: any; // Merchant information extracted from the QR code
+  merchantInfo?: {
+    nmid?: string;
+    merchantName?: string;
+    id?: string;
+    [key: string]: any;
+  }; // Merchant information extracted from the QR code
   
   // Additional fields from database
   static_qris_content?: string;
   ocr_result?: string;
-  merchant_info?: any;
+  merchant_info?: {
+    nmid?: string;
+    merchantName?: string;
+    id?: string;
+    [key: string]: any;
+  };
   dynamic_qris?: string;
   updated_at?: string;
   user_id?: string;
@@ -53,7 +63,10 @@ export interface UserProfile {
     adminWhatsApp?: string;
     whatsAppMessage?: string;
     defaultQrImage?: string;
+    qrisCode?: string;
+    qrisImage?: string;
     theme?: string;
     language?: string;
+    [key: string]: any;
   };
 }

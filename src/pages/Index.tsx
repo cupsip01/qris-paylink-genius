@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import Layout from "@/components/Layout";
-import { Wallet, Upload, Scan } from "lucide-react";
+import { Wallet, Upload, Scan, ArrowRight } from "lucide-react";
+import { SettingsService } from "@/utils/settingsService";
 
 const Index = () => {
   const [name, setName] = useState("");
@@ -20,9 +21,46 @@ const Index = () => {
   const [processingQr, setProcessingQr] = useState(false);
   const [staticQrisContent, setStaticQrisContent] = useState<string | null>(null);
   const [merchantInfo, setMerchantInfo] = useState<any>(null);
+  const [savedQrIsAvailable, setSavedQrIsAvailable] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const navigate = useNavigate();
+
+  // Load saved QR from settings
+  useEffect(() => {
+    async function loadSavedQR() {
+      try {
+        setLoadingSettings(true);
+        const settings = await SettingsService.getQRISSettings();
+        
+        if (settings.qrisImage && settings.qrisCode) {
+          setSavedQrIsAvailable(true);
+          // Set the static QR content from settings
+          setStaticQrisContent(settings.qrisCode);
+          
+          // Try to parse merchant info if we have a QR code
+          if (settings.qrisCode) {
+            try {
+              const merchantData = PaymentService.parseQRWithOCR(settings.qrisImage);
+              setMerchantInfo(merchantData.merchantInfo);
+            } catch (error) {
+              console.error("Error parsing saved QR:", error);
+            }
+          }
+        } else {
+          setSavedQrIsAvailable(false);
+        }
+      } catch (error) {
+        console.error("Error loading saved QR:", error);
+        setSavedQrIsAvailable(false);
+      } finally {
+        setLoadingSettings(false);
+      }
+    }
+    
+    loadSavedQR();
+  }, []);
 
   const handleQrImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,6 +109,13 @@ const Index = () => {
     
     if (isNaN(Number(amount)) || Number(amount) <= 0) {
       toast.error("Please enter a valid amount");
+      return;
+    }
+    
+    // Check if QR code is available (either uploaded or from settings)
+    if (!staticQrisContent && !savedQrIsAvailable) {
+      toast.error("Please upload a QR code first or set one in QRIS Settings");
+      navigate("/settings/qris");
       return;
     }
     
@@ -127,67 +172,92 @@ const Index = () => {
         </div>
         
         <form onSubmit={handleCreatePayment} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="qr-upload">QR Code Upload (Optional)</Label>
-            <div className="flex flex-col items-center">
-              <input
-                ref={fileInputRef}
-                type="file"
-                id="qr-upload"
-                accept="image/*"
-                className="hidden"
-                onChange={handleQrImageUpload}
-              />
-              
-              {qrImage ? (
-                <div className="flex flex-col items-center">
-                  <div className="relative w-48 h-48 mb-2 border rounded-lg overflow-hidden">
-                    <img
-                      src={qrImage}
-                      alt="Uploaded QR"
-                      className="w-full h-full object-cover"
-                    />
-                    {processingQr && (
-                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                        <div className="animate-spin h-8 w-8 border-4 border-white border-t-transparent rounded-full"></div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {staticQrisContent && (
-                    <div className="text-center mb-4">
-                      <p className="text-sm font-medium text-green-600">QR Code detected!</p>
-                      {merchantInfo && merchantInfo.merchantName && (
-                        <p className="text-sm text-gray-600">Merchant: {merchantInfo.merchantName}</p>
+          {/* Only show QR upload if there's no saved QR in settings */}
+          {!savedQrIsAvailable && !loadingSettings && (
+            <div className="space-y-2">
+              <Label htmlFor="qr-upload">QR Code Upload</Label>
+              <div className="flex flex-col items-center">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  id="qr-upload"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleQrImageUpload}
+                />
+                
+                {qrImage ? (
+                  <div className="flex flex-col items-center">
+                    <div className="relative w-48 h-48 mb-2 border rounded-lg overflow-hidden">
+                      <img
+                        src={qrImage}
+                        alt="Uploaded QR"
+                        className="w-full h-full object-cover"
+                      />
+                      {processingQr && (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                          <div className="animate-spin h-8 w-8 border-4 border-white border-t-transparent rounded-full"></div>
+                        </div>
                       )}
                     </div>
-                  )}
-                  
+                    
+                    {staticQrisContent && (
+                      <div className="text-center mb-4">
+                        <p className="text-sm font-medium text-green-600">QR Code detected!</p>
+                        {merchantInfo && merchantInfo.merchantName && (
+                          <p className="text-sm text-gray-600">Merchant: {merchantInfo.merchantName}</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={triggerFileInput}
+                      disabled={processingQr}
+                      className="mb-4"
+                    >
+                      Change Image
+                    </Button>
+                  </div>
+                ) : (
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
+                    className="w-full h-32 border-dashed border-2 flex flex-col items-center justify-center"
                     onClick={triggerFileInput}
-                    disabled={processingQr}
-                    className="mb-4"
                   >
-                    Change Image
+                    <Upload className="h-6 w-6 mb-2 text-gray-500" />
+                    <span>Upload Static QR Code</span>
+                    <span className="text-xs text-gray-500 mt-1">or click to browse</span>
                   </Button>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-32 border-dashed border-2 flex flex-col items-center justify-center"
-                  onClick={triggerFileInput}
-                >
-                  <Upload className="h-6 w-6 mb-2 text-gray-500" />
-                  <span>Upload Static QR Code</span>
-                  <span className="text-xs text-gray-500 mt-1">or click to browse</span>
-                </Button>
-              )}
+                )}
+              </div>
             </div>
-          </div>
+          )}
+          
+          {/* If there's a saved QR in settings, show this notice instead */}
+          {savedQrIsAvailable && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-3">
+              <div className="bg-green-100 p-2 rounded-full">
+                <QR className="h-5 w-5 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-700">Using saved QRIS code</p>
+                <p className="text-xs text-green-600">Your default QRIS code is set in settings</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+                onClick={() => navigate('/settings/qris')}
+              >
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           
           <div className="space-y-2">
             <Label htmlFor="name">Buyer Name (Optional)</Label>
@@ -234,7 +304,7 @@ const Index = () => {
           <Button
             type="submit"
             className="w-full bg-purple-600 hover:bg-purple-700"
-            disabled={loading || processingQr}
+            disabled={loading || processingQr || (loadingSettings)}
           >
             {loading ? "Processing..." : "Generate Payment"}
           </Button>

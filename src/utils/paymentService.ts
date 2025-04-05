@@ -1,8 +1,10 @@
+
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { Payment } from "@/types/payment";
 import { convertStaticToDynamicQRIS, parseQrisData, generateQRImageFromQRIS } from './qrisUtils';
 import { extractQRCodeFromImage } from './qrScannerUtils';
+import { SettingsService } from './settingsService';
 
 export const createPayment = async (data: {
   amount: number;
@@ -15,13 +17,27 @@ export const createPayment = async (data: {
   try {
     const paymentId = uuidv4();
     
-    // Get default static QRIS code from localStorage if available
-    const defaultStaticQris = localStorage.getItem('defaultStaticQris') || data.static_qris_content;
+    // Try to get QRIS settings from user settings first
+    let defaultStaticQris = data.static_qris_content;
+    let defaultQrImage = "";
+    
+    if (!defaultStaticQris) {
+      try {
+        const settings = await SettingsService.getQRISSettings();
+        defaultStaticQris = settings.qrisCode;
+        defaultQrImage = settings.qrisImage;
+      } catch (error) {
+        console.error("Error getting QRIS settings:", error);
+        // Fallback to localStorage
+        defaultStaticQris = localStorage.getItem('defaultStaticQris') || data.static_qris_content;
+        defaultQrImage = localStorage.getItem('defaultQrImage') || "";
+      }
+    }
     
     let qrImageUrl = "";
     let merchantName = "Jedo Store";
     let qrisNmid = "ID10243136428";
-    let merchantInfo = {};
+    let merchantInfo: any = {};
     
     // If we have a default static QRIS, generate dynamic QRIS from it
     if (defaultStaticQris) {
@@ -33,8 +49,8 @@ export const createPayment = async (data: {
         
         // Parse QRIS data to extract merchant info
         const qrisData = parseQrisData(defaultStaticQris);
-        merchantName = qrisData.merchantName;
-        qrisNmid = qrisData.nmid;
+        merchantName = qrisData.merchantName || "Jedo Store";
+        qrisNmid = qrisData.nmid || "ID10243136428";
         merchantInfo = qrisData;
         
         // Generate QR code image URL from the dynamic QRIS
@@ -46,16 +62,13 @@ export const createPayment = async (data: {
         qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + 
                     encodeURIComponent(`amount=${data.amount}&id=${paymentId}`);
       }
-    } else {
+    } else if (defaultQrImage) {
       // Use the default QR image if available
-      const defaultQrImage = localStorage.getItem('defaultQrImage');
-      if (defaultQrImage) {
-        qrImageUrl = defaultQrImage;
-      } else {
-        // Fallback to generated QR
-        qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + 
-                    encodeURIComponent(`amount=${data.amount}&id=${paymentId}`);
-      }
+      qrImageUrl = defaultQrImage;
+    } else {
+      // Fallback to generated QR
+      qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + 
+                  encodeURIComponent(`amount=${data.amount}&id=${paymentId}`);
     }
     
     const currentDate = new Date().toISOString();

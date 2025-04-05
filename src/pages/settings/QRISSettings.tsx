@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,7 @@ import Layout from "@/components/Layout";
 import { QrCode, Upload, Loader2, Save, CheckCircle2 } from "lucide-react";
 import { SettingsService } from "@/utils/settingsService";
 import { extractQRCodeFromImage, isValidQRISCode } from "@/utils/qrScannerUtils";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthProvider";
 
 export default function QRISSettings() {
@@ -33,7 +33,7 @@ export default function QRISSettings() {
             .single();
             
           if (profile?.preferences) {
-            const prefs = profile.preferences;
+            const prefs = profile.preferences as any;
             if (prefs.qrisCode) setQrisCode(prefs.qrisCode);
             if (prefs.qrisImage) setQrisImage(prefs.qrisImage);
             return;
@@ -46,11 +46,7 @@ export default function QRISSettings() {
         setQrisImage(settings.qrisImage);
       } catch (error) {
         console.error("Error loading QRIS settings:", error);
-        toast({
-          title: "Error loading settings",
-          description: "Failed to load QRIS settings",
-          variant: "destructive",
-        });
+        toast.error("Failed to load QRIS settings");
       } finally {
         setIsLoading(false);
       }
@@ -74,7 +70,7 @@ export default function QRISSettings() {
           
         const currentPrefs = profile?.preferences || {};
         const updatedPrefs = { 
-          ...currentPrefs,
+          ...currentPrefs as object,
           qrisCode,
           qrisImage 
         };
@@ -97,17 +93,10 @@ export default function QRISSettings() {
       }
       
       setIsSaved(true);
-      toast({
-        title: "Settings saved",
-        description: "Your QRIS settings have been saved successfully",
-      });
+      toast.success("Your QRIS settings have been saved successfully");
     } catch (error) {
       console.error("Error saving QRIS settings:", error);
-      toast({
-        title: "Error saving settings",
-        description: "Failed to save QRIS settings",
-        variant: "destructive",
-      });
+      toast.error("Failed to save QRIS settings");
     } finally {
       setIsLoading(false);
     }
@@ -130,31 +119,16 @@ export default function QRISSettings() {
           if (extractedCode) {
             if (isValidQRISCode(extractedCode)) {
               setQrisCode(extractedCode);
-              toast({
-                title: "QRIS Code detected",
-                description: "The QRIS code was automatically extracted from the image",
-              });
+              toast.success("The QRIS code was automatically extracted from the image");
             } else {
-              toast({
-                title: "Invalid QRIS Code",
-                description: "The detected QR code doesn't appear to be a valid QRIS code",
-                variant: "destructive",
-              });
+              toast.error("The detected QR code doesn't appear to be a valid QRIS code");
             }
           } else {
-            toast({
-              title: "No QRIS Code detected",
-              description: "Could not find a valid QRIS code in the image",
-              variant: "destructive",
-            });
+            toast.error("Could not find a valid QRIS code in the image");
           }
         } catch (error) {
           console.error("Error scanning QR code:", error);
-          toast({
-            title: "Error scanning QR code",
-            description: "Failed to scan QR code from the image",
-            variant: "destructive",
-          });
+          toast.error("Failed to scan QR code from the image");
         } finally {
           setIsScanning(false);
         }

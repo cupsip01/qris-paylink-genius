@@ -1,93 +1,47 @@
 
-import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Home, ArrowLeft, AlertTriangle } from "lucide-react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/AuthProvider";
+import { ArrowLeft, Home, AlertTriangle } from "lucide-react";
 
 const NotFound = () => {
-  const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [countdown, setCountdown] = useState(5);
-
-  useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
-
-    // Auto redirect after countdown
-    const timer = setTimeout(() => {
-      navigateToSafePage();
-    }, 5000);
-
-    // Countdown timer
-    const countdownInterval = setInterval(() => {
-      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-
-    return () => {
-      clearTimeout(timer);
-      clearInterval(countdownInterval);
-    };
-  }, [location.pathname]);
-
-  // Navigate to home if logged in, or auth page if not
-  const navigateToSafePage = () => {
-    if (user) {
-      navigate("/");
-    } else {
-      navigate("/auth");
-    }
-  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100 p-4">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="bg-white rounded-xl shadow-xl overflow-hidden max-w-md w-full"
-      >
-        <div className="bg-gradient-to-r from-purple-500 to-indigo-600 p-6 text-white">
-          <div className="flex items-center justify-center">
-            <AlertTriangle className="h-16 w-16 text-white opacity-90" />
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-gray-50 dark:bg-gray-900">
+      <div className="w-full max-w-md mx-auto text-center">
+        <div className="mb-6 flex justify-center">
+          <div className="bg-red-100 p-4 rounded-full">
+            <AlertTriangle className="h-10 w-10 text-red-600" />
           </div>
-          <h1 className="text-3xl font-bold text-center mt-4">404</h1>
-          <p className="text-center text-white/80 mt-1">Halaman Tidak Ditemukan</p>
         </div>
         
-        <div className="p-6">
-          <p className="text-gray-700 text-center mb-6">
-            Maaf, sepertinya Anda mengakses halaman yang tidak tersedia atau URL yang salah.
-          </p>
+        <h1 className="text-4xl font-bold text-red-600 mb-2">404</h1>
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Page Not Found</h2>
+        
+        <p className="mb-8 text-gray-600 dark:text-gray-400">
+          Oops! The page you are looking for doesn't exist or has been moved.
+        </p>
+        
+        <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 justify-center">
+          <Button 
+            onClick={() => navigate(-1)} 
+            variant="outline"
+            className="flex items-center"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Go Back
+          </Button>
           
-          <div className="space-y-4">
-            <Button 
-              onClick={navigateToSafePage} 
-              className="w-full bg-purple-600 hover:bg-purple-700"
-            >
-              <Home className="h-4 w-4 mr-2" /> 
-              Kembali ke {user ? "Beranda" : "Login"}
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => navigate(-1)} 
-              className="w-full border-purple-200 text-purple-700 hover:bg-purple-50"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" /> 
-              Kembali ke Halaman Sebelumnya
-            </Button>
-          </div>
-          
-          <p className="text-sm text-gray-500 text-center mt-6">
-            Anda akan dialihkan otomatis dalam {countdown} detik...
-          </p>
+          <Button 
+            onClick={() => navigate("/")} 
+            className="bg-purple-600 hover:bg-purple-700 flex items-center"
+          >
+            <Home className="mr-2 h-4 w-4" />
+            Go Home
+          </Button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

@@ -44,7 +44,7 @@ export const SettingsService = {
       .from("profiles")
       .update({
         preferences: {
-          ...currentPrefs,
+          ...(currentPrefs as object),
           whatsappNumber,
           whatsAppMessage: whatsappMessage
         }
@@ -86,7 +86,7 @@ export const SettingsService = {
       .from("profiles")
       .update({
         preferences: {
-          ...currentPrefs,
+          ...(currentPrefs as object),
           qrisCode,
           qrisImage
         }
@@ -144,8 +144,8 @@ export const SettingsService = {
       }
       
       return {
-        qrisCode: settings.preferences?.qrisCode || localStorage.getItem('defaultStaticQris') || "",
-        qrisImage: settings.preferences?.qrisImage || localStorage.getItem('defaultQrImage') || ""
+        qrisCode: (settings.preferences as any)?.qrisCode || localStorage.getItem('defaultStaticQris') || "",
+        qrisImage: (settings.preferences as any)?.qrisImage || localStorage.getItem('defaultQrImage') || ""
       };
     } catch (error) {
       console.error("Error getting QRIS settings:", error);

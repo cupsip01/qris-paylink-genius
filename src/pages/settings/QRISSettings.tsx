@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -5,20 +6,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import Layout from "@/components/Layout";
-import { QrCode, Upload, Loader2 } from "lucide-react";
+import { QrCode, Upload, Loader2, Save, CheckCircle2 } from "lucide-react";
 import { SettingsService } from "@/utils/settingsService";
 import { extractQRCodeFromImage, isValidQRISCode } from "@/utils/qrScannerUtils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthProvider";
 
 export default function QRISSettings() {
   const [qrisCode, setQrisCode] = useState("");
   const [qrisImage, setQrisImage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     async function loadSettings() {
       try {
         setIsLoading(true);
+        if (user) {
+          // Try to load from Supabase first
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('preferences')
+            .eq('id', user.id)
+            .single();
+            
+          if (profile?.preferences) {
+            const prefs = profile.preferences;
+            if (prefs.qrisCode) setQrisCode(prefs.qrisCode);
+            if (prefs.qrisImage) setQrisImage(prefs.qrisImage);
+            return;
+          }
+        }
+        
+        // Fallback to localStorage or service
         const settings = await SettingsService.getQRISSettings();
         setQrisCode(settings.qrisCode);
         setQrisImage(settings.qrisImage);
@@ -35,11 +57,35 @@ export default function QRISSettings() {
     }
     
     loadSettings();
-  }, []);
+  }, [user]);
 
   const handleSaveSettings = async () => {
     try {
       setIsLoading(true);
+      setIsSaved(false);
+      
+      if (user) {
+        // Save to Supabase profiles preferences
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('preferences')
+          .eq('id', user.id)
+          .single();
+          
+        const currentPrefs = profile?.preferences || {};
+        const updatedPrefs = { 
+          ...currentPrefs,
+          qrisCode,
+          qrisImage 
+        };
+        
+        await supabase
+          .from('profiles')
+          .update({ preferences: updatedPrefs })
+          .eq('id', user.id);
+      }
+      
+      // Also save using the service for backward compatibility
       await SettingsService.updateQRISSettings(qrisCode, qrisImage);
       
       // Also save to localStorage for backward compatibility
@@ -50,6 +96,7 @@ export default function QRISSettings() {
         localStorage.setItem('defaultQrImage', qrisImage);
       }
       
+      setIsSaved(true);
       toast({
         title: "Settings saved",
         description: "Your QRIS settings have been saved successfully",
@@ -73,6 +120,7 @@ export default function QRISSettings() {
       reader.onloadend = async () => {
         const imageDataUrl = reader.result as string;
         setQrisImage(imageDataUrl);
+        setIsSaved(false);
         
         // Extract QRIS code from the uploaded image
         try {
@@ -124,7 +172,10 @@ export default function QRISSettings() {
             id="qrisCode"
             placeholder="Paste your static QRIS code here"
             value={qrisCode}
-            onChange={(e) => setQrisCode(e.target.value)}
+            onChange={(e) => {
+              setQrisCode(e.target.value);
+              setIsSaved(false);
+            }}
             rows={4}
           />
           <p className="text-sm text-gray-500">
@@ -138,12 +189,17 @@ export default function QRISSettings() {
           <div className="flex flex-col items-center border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
             {qrisImage ? (
               <div className="space-y-4 flex flex-col items-center">
-                <div className="w-48 h-48">
+                <div className="w-48 h-48 relative">
                   <img
                     src={qrisImage}
                     alt="QRIS Code"
                     className="w-full h-full object-contain"
                   />
+                  {isSaved && (
+                    <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1">
+                      <CheckCircle2 className="h-5 w-5" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -151,6 +207,7 @@ export default function QRISSettings() {
                     onClick={() => document.getElementById("qris-image-upload")?.click()}
                     disabled={isScanning}
                   >
+                    <Upload className="w-4 h-4 mr-2" />
                     Change Image
                   </Button>
                   {isScanning && (
@@ -208,8 +265,16 @@ export default function QRISSettings() {
               <Loader2 className="animate-spin mr-2 h-4 w-4" />
               Saving...
             </>
+          ) : isSaved ? (
+            <>
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              Saved
+            </>
           ) : (
-            "Save Settings"
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Save Settings
+            </>
           )}
         </Button>
       </div>

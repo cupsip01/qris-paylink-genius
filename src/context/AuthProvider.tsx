@@ -2,7 +2,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 type AuthContextType = {
   session: Session | null;
@@ -18,9 +19,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     console.log("Setting up auth provider");
+    
+    // Clean URL if it contains a Supabase URL
+    const cleanupURLIfNeeded = () => {
+      const currentUrl = window.location.href;
+      if (currentUrl.includes('supabase.co')) {
+        const hashIndex = currentUrl.indexOf('#');
+        if (hashIndex !== -1) {
+          // Get the access_token part
+          const hashPart = currentUrl.substring(hashIndex);
+          // Replace the entire URL with just your domain + hash fragment
+          const baseUrl = window.location.origin;
+          const cleanUrl = baseUrl + hashPart;
+          
+          // Replace URL without reloading page
+          window.history.replaceState(null, '', cleanUrl);
+          return true;
+        }
+      }
+      return false;
+    };
     
     // Handle hash fragment from OAuth redirects
     const handleHashFragment = () => {
@@ -28,13 +50,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (hashFragment && hashFragment.includes('access_token')) {
         // Remove the hash to clean up the URL without reloading the page
         window.history.replaceState(null, '', window.location.pathname);
+        return true;
       }
+      return false;
     };
     
-    // Clean up URL if it contains auth tokens
-    handleHashFragment();
+    // First try to clean up a Supabase URL if we're on one
+    const wasOnSupabaseUrl = cleanupURLIfNeeded();
     
-    // Set up the auth state listener first
+    // Then check for and handle hash fragments
+    const hadHashFragment = handleHashFragment();
+    
+    // Set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         console.log('Auth state changed:', event);
@@ -44,10 +71,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Redirect based on auth state
         if (event === 'SIGNED_IN') {
           console.log('User signed in, redirecting to home');
+          toast({
+            title: "Login berhasil",
+            description: "Selamat datang kembali",
+          });
           // Give a small delay to allow state to update
           setTimeout(() => navigate('/'), 100);
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out, redirecting to auth');
+          toast({
+            title: "Signed out",
+            description: "You have been logged out",
+          });
           setTimeout(() => navigate('/auth'), 100);
         }
       }
@@ -59,6 +94,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
       setLoading(false);
+      
+      // If we cleaned up a URL or handled a hash fragment, and we have a session,
+      // redirect to home page to ensure we're on the right URL
+      if ((wasOnSupabaseUrl || hadHashFragment) && initialSession) {
+        navigate('/', { replace: true });
+      }
     });
 
     return () => {

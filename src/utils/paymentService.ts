@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from "@/integrations/supabase/client";
 import { Payment } from "@/types/payment";
@@ -172,8 +171,12 @@ export const getPayment = async (id: string): Promise<Payment> => {
 
       // Extract merchant info from data
       const merchantInfo = data.merchant_info || {};
-      const merchantName = merchantInfo.merchantName || "Jedo Store";
-      const qrisNmid = merchantInfo.nmid || "ID10243136428";
+      const merchantName = typeof merchantInfo === 'object' && merchantInfo !== null 
+        ? merchantInfo.merchantName || "Jedo Store" 
+        : "Jedo Store";
+      const qrisNmid = typeof merchantInfo === 'object' && merchantInfo !== null 
+        ? merchantInfo.nmid || "ID10243136428" 
+        : "ID10243136428";
 
       // Transform the database record into our Payment type
       return {
@@ -373,6 +376,13 @@ export const getAllPayments = async (): Promise<Payment[]> => {
       // Transform database records to Payment objects
       payments = data.map(item => {
         const merchantInfo = item.merchant_info || {};
+        const merchantName = typeof merchantInfo === 'object' && merchantInfo !== null 
+          ? merchantInfo.merchantName || "Jedo Store" 
+          : "Jedo Store";
+        const qrisNmid = typeof merchantInfo === 'object' && merchantInfo !== null 
+          ? merchantInfo.nmid || "ID10243136428" 
+          : "ID10243136428";
+        
         return {
           id: item.id,
           amount: item.amount,
@@ -382,8 +392,8 @@ export const getAllPayments = async (): Promise<Payment[]> => {
           createdAt: item.created_at,
           status: item.status as 'pending' | 'paid',
           qrImageUrl: item.dynamic_qris,
-          merchantName: merchantInfo.merchantName || "Jedo Store",
-          qrisNmid: merchantInfo.nmid || "ID10243136428",
+          merchantName: merchantName,
+          qrisNmid: qrisNmid,
           formattedAmount: new Intl.NumberFormat('id-ID', {
             style: 'currency',
             currency: 'IDR',

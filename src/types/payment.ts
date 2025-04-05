@@ -33,6 +33,13 @@ export interface Payment {
   static_qris_content?: string;
   ocr_result?: string;
   merchant_info?: any;
+  dynamic_qris?: string;
+  updated_at?: string;
+  user_id?: string;
+  buyer_name?: string;
+  bank_sender?: string;
+  created_at?: string;
+  original_qris?: string;
 }
 
 export interface UserProfile {

@@ -31,10 +31,20 @@ export const SettingsService = {
       throw new Error("Not authenticated");
     }
     
+    // Get current preferences to update only the required fields
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("preferences")
+      .eq("id", user.user.id)
+      .single();
+      
+    const currentPrefs = profile?.preferences || {};
+    
     const { data, error } = await supabase
       .from("profiles")
       .update({
         preferences: {
+          ...currentPrefs,
           whatsappNumber,
           whatsAppMessage: whatsappMessage
         }
@@ -46,6 +56,10 @@ export const SettingsService = {
       throw new Error("Failed to update WhatsApp settings");
     }
     
+    // Also save to localStorage for backwards compatibility
+    localStorage.setItem('adminWhatsApp', whatsappNumber);
+    localStorage.setItem('whatsAppMessage', whatsappMessage);
+    
     return data;
   },
   
@@ -53,13 +67,26 @@ export const SettingsService = {
     const { data: user } = await supabase.auth.getUser();
     
     if (!user.user) {
-      throw new Error("Not authenticated");
+      // If not authenticated, save to localStorage only
+      localStorage.setItem('defaultStaticQris', qrisCode);
+      localStorage.setItem('defaultQrImage', qrisImage);
+      return null;
     }
+    
+    // Get current preferences to update only the required fields
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("preferences")
+      .eq("id", user.user.id)
+      .single();
+      
+    const currentPrefs = profile?.preferences || {};
     
     const { data, error } = await supabase
       .from("profiles")
       .update({
         preferences: {
+          ...currentPrefs,
           qrisCode,
           qrisImage
         }
@@ -71,38 +98,62 @@ export const SettingsService = {
       throw new Error("Failed to update QRIS settings");
     }
     
+    // Also save to localStorage for backwards compatibility
+    localStorage.setItem('defaultStaticQris', qrisCode);
+    localStorage.setItem('defaultQrImage', qrisImage);
+    
     return data;
   },
   
   async getWhatsAppSettings() {
-    const settings = await this.getSettings();
-    
-    if (!settings) {
+    try {
+      const settings = await this.getSettings();
+      
+      if (!settings || !settings.preferences) {
+        // Fallback to localStorage
+        return {
+          whatsappNumber: localStorage.getItem('adminWhatsApp') || "",
+          whatsappMessage: localStorage.getItem('whatsAppMessage') || "Halo, saya ingin konfirmasi pembayaran QRIS."
+        };
+      }
+      
       return {
-        whatsappNumber: "",
-        whatsappMessage: "Halo, saya ingin konfirmasi pembayaran QRIS."
+        whatsappNumber: settings.preferences?.whatsappNumber || "",
+        whatsappMessage: settings.preferences?.whatsAppMessage || "Halo, saya ingin konfirmasi pembayaran QRIS."
+      };
+    } catch (error) {
+      console.error("Error getting WhatsApp settings:", error);
+      // Fallback to localStorage
+      return {
+        whatsappNumber: localStorage.getItem('adminWhatsApp') || "",
+        whatsappMessage: localStorage.getItem('whatsAppMessage') || "Halo, saya ingin konfirmasi pembayaran QRIS."
       };
     }
-    
-    return {
-      whatsappNumber: settings.preferences?.whatsappNumber || "",
-      whatsappMessage: settings.preferences?.whatsAppMessage || "Halo, saya ingin konfirmasi pembayaran QRIS."
-    };
   },
   
   async getQRISSettings() {
-    const settings = await this.getSettings();
-    
-    if (!settings) {
+    try {
+      const settings = await this.getSettings();
+      
+      if (!settings || !settings.preferences) {
+        // Fallback to localStorage
+        return {
+          qrisCode: localStorage.getItem('defaultStaticQris') || "",
+          qrisImage: localStorage.getItem('defaultQrImage') || ""
+        };
+      }
+      
       return {
-        qrisCode: "",
-        qrisImage: ""
+        qrisCode: settings.preferences?.qrisCode || localStorage.getItem('defaultStaticQris') || "",
+        qrisImage: settings.preferences?.qrisImage || localStorage.getItem('defaultQrImage') || ""
+      };
+    } catch (error) {
+      console.error("Error getting QRIS settings:", error);
+      // Fallback to localStorage
+      return {
+        qrisCode: localStorage.getItem('defaultStaticQris') || "",
+        qrisImage: localStorage.getItem('defaultQrImage') || ""
       };
     }
-    
-    return {
-      qrisCode: settings.preferences?.qrisCode || "",
-      qrisImage: settings.preferences?.qrisImage || ""
-    };
   }
 };

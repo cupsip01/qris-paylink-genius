@@ -24,6 +24,10 @@ export interface Payment {
   taxType?: 'p' | 'r'; // Tax type (percentage or rupiah)
   fee?: string; // Fee amount
   qrisId?: string; // QRIS ID type (01 or A01)
+  
+  // Added fields for OCR and merchant data
+  ocrResult?: string; // Raw OCR result text
+  merchantInfo?: any; // Merchant information extracted from the QR code
 }
 
 export interface UserProfile {

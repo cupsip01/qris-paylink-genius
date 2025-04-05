@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -12,6 +13,7 @@ import PaymentDetails from "@/pages/PaymentDetails";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "@/pages/NotFound";
 import SettingsPage from "@/pages/SettingsPage";
+import EditPayment from "@/pages/EditPayment";
 
 // Additional imports for settings pages
 import GeneralSettings from "./pages/settings/GeneralSettings";
@@ -42,6 +44,7 @@ const App = () => {
               {/* Protected routes */}
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+              <Route path="/edit/:id" element={<ProtectedRoute><EditPayment /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               
               {/* Settings subpages */}

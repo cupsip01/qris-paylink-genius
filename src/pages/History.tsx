@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
-import { ChevronRight, Search, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, Search, SlidersHorizontal, Trash2, Edit, AlertCircle } from "lucide-react";
 import { Payment } from "@/types/payment";
 import { PaymentService } from "@/utils/paymentService";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,17 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthProvider";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const History = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -32,6 +43,7 @@ const History = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -71,6 +83,26 @@ const History = () => {
       toast({
         title: "Error",
         description: "Failed to update payment status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeletePayment = async (id: string) => {
+    try {
+      await PaymentService.deletePayment(id);
+      toast({
+        title: "Success",
+        description: "Payment deleted successfully",
+      });
+      // Remove from state
+      setPayments(payments.filter(p => p.id !== id));
+      setDeleteId(null);
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete payment",
         variant: "destructive",
       });
     }
@@ -192,6 +224,35 @@ const History = () => {
                               Mark Pending
                             </Button>
                           )}
+                          <AlertDialog open={deleteId === payment.id} onOpenChange={(open) => !open && setDeleteId(null)}>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="bg-red-50 hover:bg-red-100 text-red-700"
+                                onClick={() => setDeleteId(payment.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Payment</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this payment? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  className="bg-red-600 hover:bg-red-700"
+                                  onClick={() => payment.id && handleDeletePayment(payment.id)}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -214,33 +275,67 @@ const History = () => {
             </div>
           ) : filteredPayments.length > 0 ? (
             filteredPayments.map((payment) => (
-              <Link
-                key={payment.id}
-                to={`/payment/${payment.id}`}
-                className="flex items-center justify-between p-4 bg-white rounded-lg border hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center">
-                  <div className="bg-amber-100 w-10 h-10 rounded-full flex items-center justify-center mr-3">
-                    <span className="text-amber-600">₹</span>
+              <div key={payment.id} className="relative">
+                <Link
+                  to={`/payment/${payment.id}`}
+                  className="flex items-center justify-between p-4 bg-white rounded-lg border hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center">
+                    <div className="bg-amber-100 w-10 h-10 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-amber-600">₹</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {payment.buyerName || (payment.note ? payment.note.slice(0, 20) : "Rp " + payment.amount.toLocaleString())}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {format(new Date(payment.createdAt), "MMM d, yyyy HH:mm")}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">
-                      {payment.buyerName || (payment.note ? payment.note.slice(0, 20) : "Rp " + payment.amount.toLocaleString())}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {format(new Date(payment.createdAt), "MMM d, yyyy HH:mm")}
-                    </p>
+                  <div className="flex items-center">
+                    <Badge 
+                      className={payment.status === 'paid' ? 'bg-green-500' : 'bg-yellow-500'}
+                    >
+                      {payment.status}
+                    </Badge>
+                    <ChevronRight className="h-5 w-5 text-gray-400 ml-2" />
                   </div>
-                </div>
-                <div className="flex items-center">
-                  <Badge 
-                    className={payment.status === 'paid' ? 'bg-green-500' : 'bg-yellow-500'}
-                  >
-                    {payment.status}
-                  </Badge>
-                  <ChevronRight className="h-5 w-5 text-gray-400 ml-2" />
-                </div>
-              </Link>
+                </Link>
+                <AlertDialog open={deleteId === payment.id} onOpenChange={(open) => !open && setDeleteId(null)}>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-red-500 hover:text-red-700 absolute top-2 right-2"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDeleteId(payment.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Payment</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this payment? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        className="bg-red-600 hover:bg-red-700"
+                        onClick={() => payment.id && handleDeletePayment(payment.id)}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             ))
           ) : (
             <div className="text-center py-10">

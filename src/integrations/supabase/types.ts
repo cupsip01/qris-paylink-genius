@@ -17,8 +17,11 @@ export type Database = {
           created_at: string
           dynamic_qris: string
           id: string
+          merchant_info: Json | null
           note: string | null
+          ocr_result: string | null
           original_qris: string | null
+          static_qris_content: string | null
           status: string
           updated_at: string
           user_id: string | null
@@ -30,8 +33,11 @@ export type Database = {
           created_at?: string
           dynamic_qris: string
           id?: string
+          merchant_info?: Json | null
           note?: string | null
+          ocr_result?: string | null
           original_qris?: string | null
+          static_qris_content?: string | null
           status?: string
           updated_at?: string
           user_id?: string | null
@@ -43,8 +49,11 @@ export type Database = {
           created_at?: string
           dynamic_qris?: string
           id?: string
+          merchant_info?: Json | null
           note?: string | null
+          ocr_result?: string | null
           original_qris?: string | null
+          static_qris_content?: string | null
           status?: string
           updated_at?: string
           user_id?: string | null

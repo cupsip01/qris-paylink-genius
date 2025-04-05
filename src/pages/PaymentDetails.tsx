@@ -2,11 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Share2, Download, MessageSquare, User, CreditCard, Clock } from 'lucide-react';
+import { Copy, Share2, Download, MessageSquare, User, CreditCard, Clock, Trash2, Edit } from 'lucide-react';
 import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
-import { useQuery } from '@tanstack/react-query';
-import { getPayment } from '@/utils/paymentService';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { getPayment, PaymentService } from '@/utils/paymentService';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Layout from "@/components/Layout";
@@ -14,12 +13,24 @@ import PaymentHeader from "@/components/payment/PaymentHeader";
 import PaymentAmount from "@/components/payment/PaymentAmount";
 import PaymentInfo from "@/components/payment/PaymentInfo";
 import QRCodeDisplay from "@/components/payment/QRCodeDisplay";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const PaymentDetails = () => {
   const { id: paymentId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [paymentLink, setPaymentLink] = useState('');
   const [showDetails, setShowDetails] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     if (paymentId) {
@@ -31,6 +42,30 @@ const PaymentDetails = () => {
     queryKey: ['payment', paymentId],
     queryFn: () => getPayment(paymentId),
     enabled: !!paymentId,
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string, status: 'pending' | 'paid' }) => 
+      PaymentService.updatePaymentStatus(id, status),
+    onSuccess: () => {
+      toast.success("Payment status updated");
+    },
+    onError: (error) => {
+      toast.error("Failed to update payment status");
+      console.error(error);
+    }
+  });
+
+  const deletePaymentMutation = useMutation({
+    mutationFn: (id: string) => PaymentService.deletePayment(id),
+    onSuccess: () => {
+      toast.success("Payment deleted successfully");
+      navigate('/history');
+    },
+    onError: (error) => {
+      toast.error("Failed to delete payment");
+      console.error(error);
+    }
   });
 
   const handleCopyLink = () => {
@@ -63,8 +98,15 @@ const PaymentDetails = () => {
   };
 
   const handleConfirmPayment = () => {
-    // Logic to handle payment confirmation
-    toast.success("Payment confirmation sent");
+    if (payment) {
+      updateStatusMutation.mutate({ id: payment.id, status: 'paid' });
+    }
+  };
+
+  const handleDeletePayment = () => {
+    if (payment) {
+      deletePaymentMutation.mutate(payment.id);
+    }
   };
 
   const toggleDetails = () => {
@@ -157,19 +199,35 @@ const PaymentDetails = () => {
               ? format(new Date(payment.createdAt), "dd MMM yyyy HH:mm")
               : "N/A"}</span>
             </p>
+            {payment.staticQrisContent && (
+              <p>Static QRIS: <span className="font-mono text-xs">{payment.staticQrisContent.substring(0, 20)}...</span></p>
+            )}
+            {payment.ocrResult && (
+              <p>OCR Result: <span className="font-mono text-xs">{payment.ocrResult.substring(0, 20)}...</span></p>
+            )}
           </div>
         )}
         
         {/* Primary Action */}
-        <Button 
-          className="w-full bg-purple-600 hover:bg-purple-700 rounded-full mt-2 mb-3"
-          onClick={handleConfirmPayment}
-        >
-          Konfirmasi Sudah Bayar
-        </Button>
+        {payment.status === 'pending' ? (
+          <Button 
+            className="w-full bg-purple-600 hover:bg-purple-700 rounded-full mt-2 mb-3"
+            onClick={handleConfirmPayment}
+            disabled={updateStatusMutation.isPending}
+          >
+            {updateStatusMutation.isPending ? "Updating..." : "Konfirmasi Sudah Bayar"}
+          </Button>
+        ) : (
+          <Button 
+            className="w-full bg-green-600 hover:bg-green-700 rounded-full mt-2 mb-3"
+            disabled
+          >
+            Pembayaran Selesai
+          </Button>
+        )}
         
         {/* Secondary Actions */}
-        <div className="grid grid-cols-1 gap-3 mb-20">
+        <div className="grid grid-cols-1 gap-3 mb-4">
           <Button 
             variant="outline" 
             className="w-full" 
@@ -192,6 +250,46 @@ const PaymentDetails = () => {
             onClick={handleCopyLink}
           >
             Copylink
+          </Button>
+        </div>
+
+        {/* Additional Admin Actions */}
+        <div className="grid grid-cols-2 gap-3 mb-20">
+          <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full border-red-200 text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Payment</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this payment? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  className="bg-red-600 hover:bg-red-700"
+                  onClick={handleDeletePayment}
+                  disabled={deletePaymentMutation.isPending}
+                >
+                  {deletePaymentMutation.isPending ? "Deleting..." : "Delete"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          
+          <Button 
+            variant="outline" 
+            className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
+            onClick={() => navigate(`/edit/${payment.id}`)}
+          >
+            <Edit className="mr-2 h-4 w-4" /> Edit
           </Button>
         </div>
       </div>

@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from "@/lib/supabaseClient";
 import { Payment } from "@/types/payment";
@@ -172,47 +171,9 @@ export const getPayment = async (id: string): Promise<Payment> => {
       .eq('id', id)
       .single();
 
-    if (!error && data) {
-      console.log("Payment found in database:", data);
-      
-      // Format the amount for display
-      const formattedAmount = new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0,
-      }).format(data.amount);
-
-      // Extract merchant info from data
-      const merchantInfo = data.merchant_info || {};
-      const merchantName = typeof merchantInfo === 'object' && merchantInfo !== null && 'merchantName' in merchantInfo
-        ? (merchantInfo as any).merchantName || "Jedo Store" 
-        : "Jedo Store";
-      const qrisNmid = typeof merchantInfo === 'object' && merchantInfo !== null && 'nmid' in merchantInfo
-        ? (merchantInfo as any).nmid || "ID10243136428" 
-        : "ID10243136428";
-
-      // Transform the database record into our Payment type
-      return {
-        id: data.id,
-        amount: data.amount,
-        buyerName: data.buyer_name,
-        bankSender: data.bank_sender,
-        note: data.note,
-        createdAt: data.created_at || new Date().toISOString(),
-        status: data.status as 'pending' | 'paid',
-        qrImageUrl: data.dynamic_qris,
-        merchantName: merchantName,
-        qrisNmid: qrisNmid,
-        qrisRequestDate: data.created_at || new Date().toISOString(),
-        formattedAmount,
-        staticQrisContent: data.static_qris_content,
-        ocrResult: data.ocr_result,
-        merchantInfo: merchantInfo
-      } as Payment;
-    }
-
-    // If not in database, try from localStorage
-    try {
+    if (error) {
+      console.error("Error fetching payment from database:", error);
+      // Try from localStorage if database fails
       const localPayments = JSON.parse(localStorage.getItem('payments') || '[]');
       const localPayment = localPayments.find((p: any) => p.id === id);
       
@@ -220,11 +181,51 @@ export const getPayment = async (id: string): Promise<Payment> => {
         console.log("Payment found in localStorage:", localPayment);
         return localPayment as Payment;
       }
-    } catch (localStorageError) {
-      console.error("Error checking localStorage:", localStorageError);
+      
+      throw new Error("Payment not found");
     }
 
-    throw new Error("Payment not found");
+    if (!data) {
+      throw new Error("Payment not found");
+    }
+
+    console.log("Payment found in database:", data);
+    
+    // Format the amount for display
+    const formattedAmount = new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(data.amount);
+
+    // Extract merchant info from data
+    const merchantInfo = data.merchant_info || {};
+    const merchantName = typeof merchantInfo === 'object' && merchantInfo !== null && 'merchantName' in merchantInfo
+      ? (merchantInfo as any).merchantName || "Jedo Store" 
+      : "Jedo Store";
+    const qrisNmid = typeof merchantInfo === 'object' && merchantInfo !== null && 'nmid' in merchantInfo
+      ? (merchantInfo as any).nmid || "ID10243136428" 
+      : "ID10243136428";
+
+    // Transform the database record into our Payment type
+    return {
+      id: data.id,
+      amount: data.amount,
+      buyerName: data.buyer_name,
+      bankSender: data.bank_sender,
+      note: data.note,
+      createdAt: data.created_at || new Date().toISOString(),
+      status: data.status as 'pending' | 'paid',
+      qrImageUrl: data.dynamic_qris,
+      merchantName: merchantName,
+      qrisNmid: qrisNmid,
+      qrisRequestDate: data.created_at || new Date().toISOString(),
+      formattedAmount,
+      staticQrisContent: data.static_qris_content,
+      ocrResult: data.ocr_result,
+      merchantInfo: merchantInfo
+    } as Payment;
   } catch (error: any) {
     console.error("Error fetching payment:", error);
     throw new Error(error.message || "Failed to fetch payment");

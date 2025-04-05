@@ -19,12 +19,13 @@ import NotFound from "./pages/NotFound";
 import { Toaster } from "./components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 
-// Create a client
+// Create a client with retry and refetch options
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: 2, // Increase retry attempts
       refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 5, // Data remains fresh for 5 minutes
     },
   },
 });
@@ -36,17 +37,22 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <Routes>
+              {/* Public Routes */}
               <Route path="/" element={<Index />} />
               <Route path="/payment/:id" element={<PaymentDetails />} />
-              <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-              <Route path="/edit/:id" element={<ProtectedRoute><EditPayment /></ProtectedRoute>} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/callback" element={<AuthPage />} />
+              
+              {/* Protected Routes */}
+              <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+              <Route path="/edit/:id" element={<ProtectedRoute><EditPayment /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/settings/wa" element={<ProtectedRoute><WASettings /></ProtectedRoute>} />
               <Route path="/settings/qris" element={<ProtectedRoute><QRISSettings /></ProtectedRoute>} />
               <Route path="/settings/general" element={<ProtectedRoute><GeneralSettings /></ProtectedRoute>} />
               <Route path="/settings/appearance" element={<ProtectedRoute><AppearanceSettings /></ProtectedRoute>} />
+              
+              {/* 404 Route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
             

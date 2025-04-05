@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,18 @@ import { Textarea } from "@/components/ui/textarea";
 import Layout from "@/components/Layout";
 import { Wallet, Upload, Scan, ArrowRight, QrCode } from "lucide-react";
 import { SettingsService } from "@/utils/settingsService";
+
+const formatNumber = (value: string) => {
+  // Remove non-digit characters
+  const number = value.replace(/\D/g, '');
+  // Format with dots
+  return number.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
+const unformatNumber = (value: string) => {
+  // Remove dots and return only digits
+  return value.replace(/\./g, '');
+};
 
 const Index = () => {
   const [name, setName] = useState("");
@@ -97,6 +108,13 @@ const Index = () => {
 
   const triggerFileInput = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const unformattedValue = unformatNumber(value);
+    // Store unformatted value in state
+    setAmount(unformattedValue);
   };
 
   const handleCreatePayment = async (e: React.FormEvent) => {
@@ -283,10 +301,11 @@ const Index = () => {
             <Label htmlFor="amount">Amount (Rp)</Label>
             <Input
               id="amount"
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="Masukan Jumlah Nominal"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              value={formatNumber(amount)}
+              onChange={handleAmountChange}
               required
             />
           </div>

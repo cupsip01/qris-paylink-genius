@@ -181,33 +181,6 @@ const PaymentDetails = () => {
           amount={payment.amount}
         />
         
-        <div className="mt-3 mb-2 flex justify-center">
-          <Button 
-            variant="outline" 
-            className="text-purple-600 border-purple-200 rounded-full text-sm"
-            onClick={toggleDetails}
-          >
-            {showDetails ? "Hide details" : "Show details"}
-          </Button>
-        </div>
-        
-        {showDetails && (
-          <div className="text-center text-sm text-gray-600 space-y-1 mb-4">
-            <p>Merchant: <span className="font-medium">{payment.merchantName || "Jedo Store"}</span></p>
-            <p>NMID: <span className="font-mono text-xs">{payment.qrisNmid || "ID10243136428"}</span></p>
-            <p>Generated: <span>{payment.createdAt 
-              ? format(new Date(payment.createdAt), "dd MMM yyyy HH:mm")
-              : "N/A"}</span>
-            </p>
-            {payment.staticQrisContent && (
-              <p>Static QRIS: <span className="font-mono text-xs">{payment.staticQrisContent.substring(0, 20)}...</span></p>
-            )}
-            {payment.ocrResult && (
-              <p>OCR Result: <span className="font-mono text-xs">{payment.ocrResult.substring(0, 20)}...</span></p>
-            )}
-          </div>
-        )}
-        
         {/* Primary Action */}
         {payment.status === 'pending' ? (
           <Button 

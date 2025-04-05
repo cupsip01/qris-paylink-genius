@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { User, CreditCard, MessageSquare, Calendar, Hash } from "lucide-react";
 import { format } from "date-fns";
@@ -39,60 +38,60 @@ const PaymentInfo = ({ buyerName, bankSender, note, id, createdAt }: PaymentInfo
     >
       {buyerName && (
         <motion.div className="flex items-center mb-3" variants={itemVariants}>
-          <div className="bg-violet-100 p-3 rounded-full mr-3">
-            <User className="h-5 w-5 text-violet-600" />
+          <div className="bg-violet-100 dark:bg-violet-800 p-3 rounded-full mr-3">
+            <User className="h-5 w-5 text-violet-600 dark:text-violet-300" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Customer Name</p>
-            <p className="text-sm font-medium">{buyerName}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Customer Name</p>
+            <p className="text-sm font-medium dark:text-white">{buyerName}</p>
           </div>
         </motion.div>
       )}
       
       {bankSender && (
         <motion.div className="flex items-center mb-3" variants={itemVariants}>
-          <div className="bg-blue-100 p-3 rounded-full mr-3">
-            <CreditCard className="h-5 w-5 text-blue-600" />
+          <div className="bg-blue-100 dark:bg-blue-800 p-3 rounded-full mr-3">
+            <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-300" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Payment Method</p>
-            <p className="text-sm font-medium">{bankSender}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Payment Method</p>
+            <p className="text-sm font-medium dark:text-white">{bankSender}</p>
           </div>
         </motion.div>
       )}
       
       {note && (
         <motion.div className="flex items-start mb-3" variants={itemVariants}>
-          <div className="bg-amber-100 p-3 rounded-full mr-3 mt-0.5">
-            <MessageSquare className="h-5 w-5 text-amber-600" />
+          <div className="bg-amber-100 dark:bg-amber-800 p-3 rounded-full mr-3 mt-0.5">
+            <MessageSquare className="h-5 w-5 text-amber-600 dark:text-amber-300" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Notes</p>
-            <p className="text-sm">{note}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Notes</p>
+            <p className="text-sm dark:text-white">{note}</p>
           </div>
         </motion.div>
       )}
       
       {id && (
         <motion.div className="flex items-center mb-3" variants={itemVariants}>
-          <div className="bg-gray-100 p-3 rounded-full mr-3">
-            <Hash className="h-5 w-5 text-gray-600" />
+          <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full mr-3">
+            <Hash className="h-5 w-5 text-gray-600 dark:text-gray-300" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Payment ID</p>
-            <p className="text-sm font-mono">{id}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Payment ID</p>
+            <p className="text-sm font-mono dark:text-white">{id}</p>
           </div>
         </motion.div>
       )}
       
       {createdAt && (
         <motion.div className="flex items-center" variants={itemVariants}>
-          <div className="bg-green-100 p-3 rounded-full mr-3">
-            <Calendar className="h-5 w-5 text-green-600" />
+          <div className="bg-green-100 dark:bg-green-800 p-3 rounded-full mr-3">
+            <Calendar className="h-5 w-5 text-green-600 dark:text-green-300" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Created On</p>
-            <p className="text-sm">{format(new Date(createdAt), "dd MMM yyyy HH:mm")}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Created On</p>
+            <p className="text-sm dark:text-white">{format(new Date(createdAt), "dd MMM yyyy HH:mm")}</p>
           </div>
         </motion.div>
       )}

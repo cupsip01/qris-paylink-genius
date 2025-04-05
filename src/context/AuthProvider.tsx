@@ -27,9 +27,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const hashIndex = currentUrl.indexOf('#');
         if (hashIndex !== -1) {
           const hashPart = currentUrl.substring(hashIndex);
-          const baseUrl = window.location.origin;
-          const cleanUrl = `${baseUrl}/auth/callback${hashPart}`;
-          window.location.replace(cleanUrl);
+          const targetUrl = `https://pay.keuanganpribadi.web.id/auth/callback${hashPart}`;
+          window.location.replace(targetUrl);
           return true;
         }
       }
@@ -38,8 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const handleHashFragment = () => {
       const hash = window.location.hash;
-      if (hash.includes('access_token')) {
-        // Clean up URL to remove hash
+      if (hash && hash.includes('access_token')) {
         window.history.replaceState(null, '', window.location.pathname);
         return true;
       }
@@ -71,7 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             title: 'Login berhasil',
             description: 'Selamat datang kembali!',
           });
-          setTimeout(() => navigate('/'), 100);
+          // Only redirect if we're on the auth page
+          if (location.pathname === '/auth') {
+            navigate('/');
+          }
         }
 
         if (event === 'SIGNED_OUT') {
@@ -79,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             title: 'Logout berhasil',
             description: 'Sampai jumpa!',
           });
-          setTimeout(() => navigate('/auth'), 100);
+          navigate('/auth');
         }
       }
     );
@@ -87,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, location]);
 
   const signOut = async () => {
     await supabase.auth.signOut();

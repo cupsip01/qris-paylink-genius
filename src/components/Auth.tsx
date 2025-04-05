@@ -121,19 +121,24 @@ export default function Auth() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: 'https://pay.keuanganpribadi.web.id',
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent'
-          }
+            prompt: 'consent',
+            hd: 'pay.keuanganpribadi.web.id'
+          },
+          skipBrowserRedirect: false
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Google sign in error:', error);
+        throw error;
+      }
 
-      // Jika ada data.url, redirect ke URL tersebut
+      // Redirect langsung ke URL yang diberikan oleh Supabase
       if (data?.url) {
-        console.log('Redirecting to:', data.url);
+        console.log('Redirecting to Supabase auth URL:', data.url);
         window.location.href = data.url;
       }
     } catch (error: any) {

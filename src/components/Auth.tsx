@@ -121,15 +121,26 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://pay.keuanganpribadi.web.id/auth/callback',
+          redirectTo: window.location.origin,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent'
-          }
+          },
+          skipBrowserRedirect: true
         }
       });
       
       if (error) throw error;
+
+      // Redirect manual ke callback URL
+      const currentUrl = window.location.href;
+      if (currentUrl.includes('supabase.co')) {
+        const hashIndex = currentUrl.indexOf('#');
+        if (hashIndex !== -1) {
+          const hashPart = currentUrl.substring(hashIndex);
+          window.location.href = `${window.location.origin}/auth/callback${hashPart}`;
+        }
+      }
     } catch (error: any) {
       console.error("Google login error:", error);
       toast({

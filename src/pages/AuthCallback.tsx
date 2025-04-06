@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
@@ -8,7 +9,7 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // 1. Coba dapatkan sesi dari URL
+        // 1. Try to get session from URL
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
@@ -16,7 +17,7 @@ export default function AuthCallback() {
         if (accessToken) {
           console.log('Got access token, setting session...');
           
-          // 2. Set session dengan token yang diterima
+          // 2. Set session with received tokens
           const { data: { session }, error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || ''
@@ -34,7 +35,7 @@ export default function AuthCallback() {
           }
         }
 
-        // 3. Jika tidak ada token di URL, cek sesi yang ada
+        // 3. If no tokens in URL, check existing session
         console.log('No tokens in URL, checking existing session...');
         const { data: { session: existingSession } } = await supabase.auth.getSession();
         
@@ -58,8 +59,8 @@ export default function AuthCallback() {
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Memproses autentikasi...</p>
+        <p className="text-gray-600">Processing authentication...</p>
       </div>
     </div>
   );
-} 
+}

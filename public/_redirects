@@ -1,2 +1,4 @@
+
 /* /index.html 200
-/auth/* /index.html 200 
+/auth/* /index.html 200
+/auth/callback /index.html 200

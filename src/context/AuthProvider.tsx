@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
@@ -21,32 +22,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   useEffect(() => {
-    const cleanupSupabaseUrl = () => {
-      const currentUrl = window.location.href;
-      if (currentUrl.includes('supabase.co')) {
-        const hashIndex = currentUrl.indexOf('#');
-        if (hashIndex !== -1) {
-          const hashPart = currentUrl.substring(hashIndex);
-          const targetUrl = `https://pay.keuanganpribadi.web.id/auth/callback${hashPart}`;
-          window.location.replace(targetUrl);
-          return true;
-        }
-      }
-      return false;
-    };
-
-    const handleHashFragment = () => {
-      const hash = window.location.hash;
-      if (hash && hash.includes('access_token')) {
-        window.history.replaceState(null, '', window.location.pathname);
-        return true;
-      }
-      return false;
-    };
-
-    const wasRedirected = cleanupSupabaseUrl();
-    const hadHash = handleHashFragment();
-
     // Listen to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -60,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             title: 'Login berhasil',
             description: 'Selamat datang kembali!',
           });
-          // Only redirect if we're on the auth page
+          // Only redirect if we're on the auth page or callback page
           if (location.pathname.startsWith('/auth')) {
             navigate('/', { replace: true });
           }
@@ -83,8 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
       setLoading(false);
-
-      if ((wasRedirected || hadHash) && initialSession) {
+      
+      // If user is authenticated and on auth page, redirect to home
+      if (initialSession && location.pathname.startsWith('/auth') && location.pathname !== '/auth/callback') {
         navigate('/', { replace: true });
       }
     });

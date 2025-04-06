@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
@@ -118,7 +119,7 @@ export default function Auth() {
     setGoogleLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
@@ -131,11 +132,8 @@ export default function Auth() {
       
       if (error) throw error;
 
-      // Jika ada data.url, redirect ke URL tersebut
-      if (data?.url) {
-        console.log('Redirecting to:', data.url);
-        window.location.href = data.url;
-      }
+      // No need to redirect here, Supabase will handle the redirection
+      console.log('Google authentication started, waiting for redirect...');
     } catch (error: any) {
       console.error("Google login error:", error);
       toast({

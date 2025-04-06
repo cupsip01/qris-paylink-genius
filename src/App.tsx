@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthProvider";
 import { ThemeProvider } from "./context/ThemeProvider";
@@ -17,6 +18,8 @@ import AppearanceSettings from "./pages/settings/AppearanceSettings";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
 import ProfileSettings from "./pages/settings/ProfileSettings";
+import AdminDashboard from "./pages/admin/Dashboard";
+import LimitReached from "./pages/LimitReached";
 
 import { Toaster } from "./components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
@@ -44,6 +47,7 @@ function App() {
               <Route path="/payment/:id" element={<PaymentDetails />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/limit-reached" element={<LimitReached />} />
               
               {/* Protected Routes */}
               <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
@@ -54,6 +58,16 @@ function App() {
               <Route path="/settings/general" element={<ProtectedRoute><GeneralSettings /></ProtectedRoute>} />
               <Route path="/settings/appearance" element={<ProtectedRoute><AppearanceSettings /></ProtectedRoute>} />
               <Route path="/settings/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
+              
+              {/* Admin Routes */}
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
               
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />

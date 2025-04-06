@@ -20,6 +20,13 @@ export interface Profile {
       borderStyle?: string;
     };
     syncInterval?: string;
+    isAdmin?: boolean;
+    isUnlimited?: boolean;
+    pendingUnlimitedRequest?: boolean;
+    usage?: {
+      count?: number;
+      lastDate?: string;
+    };
     [key: string]: any;
   };
 }

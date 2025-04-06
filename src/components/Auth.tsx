@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -6,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Lock } from "lucide-react";
+import { User, Mail, Lock, ShieldAlert } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useNavigate } from "react-router-dom";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -17,6 +19,69 @@ export default function Auth() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const { toast } = useToast();
+  const navigate = useNavigate();
+  
+  // Admin login special handling
+  useEffect(() => {
+    // Check if the username is admin and password is Cileungsi1
+    const checkAdminCredentials = async () => {
+      if (email === 'admin' && password === 'Cileungsi1') {
+        try {
+          setLoading(true);
+          // Instead of a regular login, we'll use our standard auth system
+          // but mark them as an admin in the profile after login
+          
+          // Use the admin email from env or hardcoded (in a real app, use env)
+          const adminEmail = "admin@keuanganpribadi.web.id";
+          
+          // Sign in with admin email
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: adminEmail,
+            password, // Use the same password they entered
+          });
+          
+          if (error) throw error;
+          
+          // Mark this user as an admin in their profile
+          if (data.user) {
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({ 
+                preferences: {
+                  isAdmin: true
+                }
+              })
+              .eq('id', data.user.id);
+              
+            if (updateError) {
+              console.error("Error updating admin status:", updateError);
+            }
+            
+            // Redirect to admin dashboard
+            toast({
+              title: "Admin login successful",
+              description: "Welcome to the admin dashboard!",
+            });
+            
+            navigate('/admin');
+          }
+        } catch (error: any) {
+          console.error("Admin login error:", error);
+          toast({
+            title: "Admin login failed",
+            description: error.message || "Invalid admin credentials",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    if (activeTab === 'login' && email === 'admin' && password) {
+      checkAdminCredentials();
+    }
+  }, [email, password, activeTab, toast, navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +147,12 @@ export default function Auth() {
         description: "Please enter your email and password",
         variant: "destructive",
       });
+      return;
+    }
+    
+    // Special case for admin login
+    if (email === 'admin' && password === 'Cileungsi1') {
+      // This is handled by the useEffect above
       return;
     }
     
@@ -197,12 +268,12 @@ export default function Auth() {
               
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email or Username</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
                     <Input
                       id="email"
-                      type="email"
+                      type="text" // Changed from email to text to allow admin username
                       placeholder="your.email@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -210,6 +281,12 @@ export default function Auth() {
                       required
                     />
                   </div>
+                  {email === 'admin' && (
+                    <div className="flex items-center text-amber-600 text-xs mt-1">
+                      <ShieldAlert className="h-3 w-3 mr-1" />
+                      Admin login detected
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-2">

@@ -5,6 +5,7 @@ import { ThemeProvider } from "./context/ThemeProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import Index from "./pages/Index";
 import PaymentDetails from "./pages/PaymentDetails";
 import History from "./pages/History";
@@ -63,9 +64,9 @@ function App() {
               <Route 
                 path="/admin" 
                 element={
-                  <ProtectedRoute>
+                  <AdminRoute>
                     <AdminDashboard />
-                  </ProtectedRoute>
+                  </AdminRoute>
                 } 
               />
               

@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
@@ -68,6 +67,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(userProfile);
           setIsAdmin(!!userProfile?.is_admin);
           setHasUnlimitedAccess(!!userProfile?.unlimited_access);
+          
+          // Check for admin status in localStorage as a fallback
+          const storedAdminStatus = localStorage.getItem('isAdmin') === 'true';
+          if (storedAdminStatus) {
+            setIsAdmin(true);
+          }
         });
       }
       
@@ -123,20 +128,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [navigate, location]);
 
   const signOut = async () => {
+    localStorage.removeItem('isAdmin'); // Clear admin status on logout
     await supabase.auth.signOut();
   };
   
   const loginAsAdmin = async (username: string, password: string) => {
-    if (password === "Cileungsi1") {
-      setIsAdmin(true);
-      toast({
-        title: 'Admin login successful',
-        description: 'Welcome to the admin dashboard',
-      });
-      navigate('/admin');
-      return true;
+    try {
+      const success = await UserService.loginAsAdmin(username, password);
+      
+      if (success) {
+        setIsAdmin(true);
+        localStorage.setItem('isAdmin', 'true'); // Store admin status
+        
+        toast({
+          title: 'Admin login successful',
+          description: 'Welcome to the admin dashboard',
+        });
+        navigate('/admin');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error in admin login:", error);
+      return false;
     }
-    return false;
   };
 
   const value = {

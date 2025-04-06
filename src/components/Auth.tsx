@@ -135,14 +135,18 @@ export default function Auth() {
     setAdminLoading(true);
     
     try {
+      console.log("Attempting admin login with password:", adminPassword);
       const success = await loginAsAdmin(adminUsername, adminPassword);
       
       if (!success) {
+        console.log("Admin login failed");
         toast({
           title: "Admin login failed",
           description: "Invalid admin credentials",
           variant: "destructive",
         });
+      } else {
+        console.log("Admin login successful");
       }
     } catch (error: any) {
       console.error("Admin login error:", error);

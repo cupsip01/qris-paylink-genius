@@ -12,10 +12,19 @@ export default function AdminRoute({ children }: AdminRouteProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if not admin and not loading
     if (!loading && !isAdmin) {
+      console.log("Not admin, redirecting to auth page");
       navigate('/auth');
     }
   }, [isAdmin, loading, navigate]);
+
+  // Add debugging console logs
+  useEffect(() => {
+    console.log("AdminRoute - isAdmin:", isAdmin);
+    console.log("AdminRoute - loading:", loading);
+    console.log("AdminRoute - localStorage admin status:", localStorage.getItem('isAdmin'));
+  }, [isAdmin, loading]);
 
   if (loading) {
     return (

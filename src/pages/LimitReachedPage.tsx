@@ -2,7 +2,7 @@
 import React from "react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { WhatsappIcon } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 export default function LimitReachedPage() {
@@ -63,7 +63,7 @@ export default function LimitReachedPage() {
               onClick={handleContactAdmin}
               className="bg-green-600 hover:bg-green-700 flex items-center gap-2 mx-auto"
             >
-              <WhatsappIcon className="h-5 w-5" />
+              <MessageSquare className="h-5 w-5" />
               Contact Admin on WhatsApp
             </Button>
           </div>

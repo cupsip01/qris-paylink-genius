@@ -5,7 +5,7 @@ import { UserService } from "@/utils/userService";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { WhatsappIcon } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
 interface UsageLimitProps {
   onAllowed: () => void;
@@ -110,7 +110,7 @@ export default function UsageLimit({ onAllowed, actionName = "action" }: UsageLi
             onClick={handleContactAdmin}
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
           >
-            <WhatsappIcon className="h-5 w-5" />
+            <MessageSquare className="h-5 w-5" />
             Contact Admin on WhatsApp
           </Button>
         </div>

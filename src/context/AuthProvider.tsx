@@ -1,14 +1,21 @@
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { UserService } from '@/utils/userService';
+import { Profile } from '@/types/profiles';
 
 type AuthContextType = {
   session: Session | null;
   user: User | null;
+  profile: Profile | null;
   loading: boolean;
+  isAdmin: boolean;
+  hasUnlimitedAccess: boolean;
   signOut: () => Promise<void>;
+  loginAsAdmin: (username: string, password: string) => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,7 +23,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [hasUnlimitedAccess, setHasUnlimitedAccess] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -51,6 +61,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
+      
+      if (initialSession?.user) {
+        // Fetch user profile
+        UserService.getProfile(initialSession.user.id).then(userProfile => {
+          setProfile(userProfile);
+          setIsAdmin(!!userProfile?.is_admin);
+          setHasUnlimitedAccess(!!userProfile?.unlimited_access);
+        });
+      }
+      
       setLoading(false);
 
       if ((wasRedirected || hadHash) && initialSession) {
@@ -60,9 +80,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Fetch user profile when auth state changes
+          const userProfile = await UserService.getProfile(session.user.id);
+          setProfile(userProfile);
+          setIsAdmin(!!userProfile?.is_admin);
+          setHasUnlimitedAccess(!!userProfile?.unlimited_access);
+        } else {
+          setProfile(null);
+          setIsAdmin(false);
+          setHasUnlimitedAccess(false);
+        }
 
         if (event === 'SIGNED_IN') {
           toast({
@@ -93,12 +125,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
   };
+  
+  const loginAsAdmin = async (username: string, password: string) => {
+    if (password === "Cileungsi1") {
+      setIsAdmin(true);
+      toast({
+        title: 'Admin login successful',
+        description: 'Welcome to the admin dashboard',
+      });
+      navigate('/admin');
+      return true;
+    }
+    return false;
+  };
 
   const value = {
     session,
     user,
+    profile,
     loading,
+    isAdmin,
+    hasUnlimitedAccess,
     signOut,
+    loginAsAdmin
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

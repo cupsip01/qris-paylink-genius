@@ -1,9 +1,11 @@
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthProvider";
 import { ThemeProvider } from "./context/ThemeProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import Index from "./pages/Index";
 import PaymentDetails from "./pages/PaymentDetails";
 import History from "./pages/History";
@@ -17,6 +19,8 @@ import AppearanceSettings from "./pages/settings/AppearanceSettings";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
 import ProfileSettings from "./pages/settings/ProfileSettings";
+import AdminDashboard from "./pages/admin/Dashboard";
+import LimitReachedPage from "./pages/LimitReachedPage";
 
 import { Toaster } from "./components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
@@ -44,6 +48,7 @@ function App() {
               <Route path="/payment/:id" element={<PaymentDetails />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/limit-reached" element={<LimitReachedPage />} />
               
               {/* Protected Routes */}
               <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
@@ -54,6 +59,9 @@ function App() {
               <Route path="/settings/general" element={<ProtectedRoute><GeneralSettings /></ProtectedRoute>} />
               <Route path="/settings/appearance" element={<ProtectedRoute><AppearanceSettings /></ProtectedRoute>} />
               <Route path="/settings/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
               
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
@@ -6,17 +7,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Lock } from "lucide-react";
+import { User, Mail, Lock, KeyRound, Shield } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/context/AuthProvider";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [adminUsername, setAdminUsername] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const { toast } = useToast();
+  const { loginAsAdmin } = useAuth();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,6 +120,42 @@ export default function Auth() {
     }
   };
 
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!adminPassword) {
+      toast({
+        title: "Missing fields",
+        description: "Please enter admin password",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setAdminLoading(true);
+    
+    try {
+      const success = await loginAsAdmin(adminUsername, adminPassword);
+      
+      if (!success) {
+        toast({
+          title: "Admin login failed",
+          description: "Invalid admin credentials",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Admin login error:", error);
+      toast({
+        title: "Login failed",
+        description: error.message || "An error occurred during login",
+        variant: "destructive",
+      });
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     
@@ -144,9 +186,10 @@ export default function Auth() {
   return (
     <div className="max-w-md mx-auto py-10">
       <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="login">Login</TabsTrigger>
           <TabsTrigger value="register">Register</TabsTrigger>
+          <TabsTrigger value="admin">Admin</TabsTrigger>
         </TabsList>
         
         <TabsContent value="login">
@@ -295,6 +338,61 @@ export default function Auth() {
                   disabled={loading}
                 >
                   {loading ? "Registering..." : "Register"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="admin">
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="space-y-1 bg-gradient-to-r from-gray-700 to-gray-900 text-white rounded-t-lg">
+              <CardTitle className="text-2xl font-bold text-center flex items-center justify-center gap-2">
+                <Shield className="h-6 w-6" />
+                Admin Access
+              </CardTitle>
+              <CardDescription className="text-center text-gray-300">
+                Enter admin credentials
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <form onSubmit={handleAdminLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="adminUsername">Username</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                    <Input
+                      id="adminUsername"
+                      placeholder="admin"
+                      value={adminUsername}
+                      onChange={(e) => setAdminUsername(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="adminPassword">Admin Password</Label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                    <Input
+                      id="adminPassword"
+                      type="password"
+                      placeholder="Enter admin password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-gray-700 to-gray-900 hover:from-gray-800 hover:to-black"
+                  disabled={adminLoading}
+                >
+                  {adminLoading ? "Verifying..." : "Access Admin Dashboard"}
                 </Button>
               </form>
             </CardContent>

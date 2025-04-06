@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import Layout from "@/components/Layout";
-import { Wallet, Upload, QrCode, ArrowRight } from "lucide-react";
+import { Wallet, Upload, Scan, ArrowRight, QrCode } from "lucide-react";
 import { SettingsService } from "@/utils/settingsService";
-import { useAuth } from "@/context/AuthProvider";
-import { UsageLimitService } from "@/utils/usageLimitService";
 
 const formatNumber = (value: string) => {
   // Remove non-digit characters
@@ -37,10 +34,8 @@ const Index = () => {
   const [merchantInfo, setMerchantInfo] = useState<any>(null);
   const [savedQrIsAvailable, setSavedQrIsAvailable] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
-  const [usageStats, setUsageStats] = useState<{ today: number, limit: number, isUnlimited: boolean, pendingRequest: boolean } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const { user } = useAuth();
+
   const navigate = useNavigate();
 
   // Load saved QR from settings
@@ -77,22 +72,6 @@ const Index = () => {
     
     loadSavedQR();
   }, []);
-  
-  // Check user usage limits
-  useEffect(() => {
-    async function checkUsageLimit() {
-      if (!user) return;
-      
-      try {
-        const stats = await UsageLimitService.checkUserLimit(user.id);
-        setUsageStats(stats);
-      } catch (error) {
-        console.error("Error checking usage limits:", error);
-      }
-    }
-    
-    checkUsageLimit();
-  }, [user]);
 
   const handleQrImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -158,13 +137,6 @@ const Index = () => {
       return;
     }
     
-    // Check usage limits
-    if (user && usageStats && !usageStats.isUnlimited && usageStats.today >= usageStats.limit) {
-      toast.error("You've reached your daily limit for generating payments");
-      navigate("/limit-reached");
-      return;
-    }
-    
     setLoading(true);
     
     try {
@@ -184,16 +156,6 @@ const Index = () => {
         static_qris_content: staticQrisContent || undefined,
         ocr_result: qrImage || undefined
       });
-      
-      // Record usage if user is logged in
-      if (user) {
-        try {
-          const updatedStats = await UsageLimitService.recordUsage(user.id);
-          setUsageStats(updatedStats);
-        } catch (error) {
-          console.error("Error recording usage:", error);
-        }
-      }
       
       if (payment && payment.id) {
         toast.success("Payment created successfully!");
@@ -225,27 +187,6 @@ const Index = () => {
           <p className="text-gray-500 dark:text-gray-400">
             Generate a QRIS code for your customer
           </p>
-          
-          {/* Display usage stats for logged in users */}
-          {user && usageStats && !usageStats.isUnlimited && (
-            <div className="mt-4 bg-purple-50 rounded-lg p-3 text-center">
-              <p className="text-sm text-purple-700">
-                Daily usage: <span className="font-bold">{usageStats.today}/{usageStats.limit}</span> generations
-              </p>
-            </div>
-          )}
-          
-          {/* Badge for unlimited users */}
-          {user && usageStats?.isUnlimited && (
-            <div className="mt-4 bg-green-50 border border-green-100 rounded-lg p-2 inline-block">
-              <span className="text-sm font-medium text-green-700 flex items-center">
-                <span className="bg-green-100 p-1 rounded-full mr-1">
-                  <QrCode className="h-3 w-3 text-green-600" />
-                </span>
-                Unlimited Access
-              </span>
-            </div>
-          )}
         </div>
         
         <form onSubmit={handleCreatePayment} className="space-y-6">
